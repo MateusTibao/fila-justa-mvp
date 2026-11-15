@@ -218,3 +218,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.dump
+*.backup
+*.sql.gz
+__pycache__/
+.venv/
+logs/
