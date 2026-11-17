@@ -1,0 +1,120 @@
+:root {
+  color-scheme: light;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #172b45;
+  background: #f5f7fa;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; line-height: 1.5; }
+
+.container {
+  max-width: 1050px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.site-header {
+  background: #ffffff;
+  border-bottom: 1px solid #dce3eb;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 76px;
+}
+
+.brand {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -.6px;
+  color: #173d69;
+}
+
+.header-label { color: #64748b; font-size: 13px; }
+
+.intro { padding: 65px 0 40px; }
+
+.eyebrow {
+  color: #245d9a;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 12px;
+}
+
+h1 {
+  max-width: 740px;
+  font-size: clamp(29px, 5vw, 43px);
+  line-height: 1.17;
+  margin: 14px 0 18px;
+}
+
+.intro p { max-width: 700px; color: #526276; }
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #dce3eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px #172b4508;
+}
+
+.panel-heading { padding: 26px 28px; }
+
+h2 { margin: 0; font-size: 21px; }
+.panel-heading p { margin: 6px 0 0; color: #63748a; font-size: 14px; }
+
+.table-wrapper { overflow-x: auto; }
+
+table { border-collapse: collapse; width: 100%; text-align: left; }
+
+th {
+  background: #eef3f8;
+  color: #3c536d;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+th, td { padding: 15px 25px; }
+
+td { border-top: 1px solid #edf0f4; font-size: 14px; }
+
+tbody tr:hover { background: #f8fafc; }
+
+.score { font-weight: 700; color: #174b83; }
+
+.notice {
+  margin: 0 28px 28px;
+  padding: 18px;
+  background: #fff4e5;
+  border-radius: 6px;
+  color: #754600;
+}
+
+.empty { padding: 0 28px 28px; }
+
+.disclaimer {
+  margin: 28px 0 70px;
+  color: #69788a;
+  font-size: 13px;
+  max-width: 850px;
+}
+
+.site-footer {
+  border-top: 1px solid #dce3eb;
+  padding: 22px 0;
+  color: #718096;
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .intro { padding-top: 40px; }
+  th, td { padding: 13px 14px; }
+  .header-label { font-size: 11px; }
+}
