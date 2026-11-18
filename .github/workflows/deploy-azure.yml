@@ -88,13 +88,16 @@ jobs:
           app-name: ${{ vars.AZURE_WEBAPP_NAME }}
           package: .
 
-      - name: Verificar rota de saude depois da publicacao
+      - name: Verificar processo e conexao com o PostgreSQL
         shell: bash
         env:
           APP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
         run: |
           set -euo pipefail
-          URL="https://${APP_NAME}.azurewebsites.net/health"
-          echo "Verificando /health na aplicacao publicada"
-          curl --fail --silent --show-error --location --retry 10 --retry-delay 10 --retry-all-errors --max-time 20 "$URL"
+          BASE_URL="https://${APP_NAME}.azurewebsites.net"
+          echo "Verificando /health (processo Flask)"
+          curl --fail --silent --show-error --location --retry 10 --retry-delay 10 --retry-all-errors --max-time 20 "$BASE_URL/health"
+          echo
+          echo "Verificando /ready (conexao PostgreSQL)"
+          curl --fail --silent --show-error --location --retry 10 --retry-delay 10 --retry-all-errors --max-time 20 "$BASE_URL/ready"
           echo
