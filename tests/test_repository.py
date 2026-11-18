@@ -192,3 +192,37 @@ def test_repositorio_prazo_vencido_e_data_local(setup):
     d=repo.mudar_status(demanda_id=d['id'],destino='resolvida',versao=d['versao'],
                         ator='gestor',perfil='gestor',justificativa='Reparo conferido')
     assert d['prazo_vencido'] is False
+
+def test_registrar_justificativa_sem_mover_o_cartao(setup):
+    repo,_=setup
+    d=repo.acompanhar_gold(ator='gestor',perfil='gestor',cluster_id='c-001')
+    with pytest.raises(RegraNegocioError):
+        repo.mudar_status(demanda_id=d['id'],versao=d['versao'],destino='pendente',
+                          ator='operador',perfil='operador',justificativa=' ')
+    anotado=repo.mudar_status(demanda_id=d['id'],versao=d['versao'],destino='pendente',
+                          ator='operador',perfil='operador',
+                          justificativa='Equipe visitou o local e aguarda material')
+    assert anotado['status']=='pendente'
+    assert anotado['versao']==d['versao']+1
+    h=repo.historico_da_demanda(d['id'])
+    assert h[-1]['tipo_evento']=='edicao'
+    assert h[-1]['status_anterior']==h[-1]['status_novo']=='pendente'
+    assert h[-1]['justificativa']=='Equipe visitou o local e aguarda material'
+    with pytest.raises(ConflitoVersaoError):
+        repo.mudar_status(demanda_id=d['id'],versao=d['versao'],destino='pendente',
+                          ator='gestor',perfil='gestor',justificativa='conflito')
+
+
+def test_anotacao_em_demanda_concluida_restrita_a_gestor(setup):
+    repo,_=setup
+    d=repo.acompanhar_gold(ator='gestor',perfil='gestor',cluster_id='c-001')
+    for etapa,perfil in [('em_andamento','operador'),('aguardando_validacao','operador'),
+                         ('resolvida','gestor')]:
+        d=repo.mudar_status(demanda_id=d['id'],versao=d['versao'],destino=etapa,
+            ator=perfil,perfil=perfil,justificativa='Conferência')
+    with pytest.raises(SemPermissaoError):
+        repo.mudar_status(demanda_id=d['id'],versao=d['versao'],destino='resolvida',
+                          ator='operador',perfil='operador',justificativa='Nota')
+    d2=repo.mudar_status(demanda_id=d['id'],versao=d['versao'],destino='resolvida',
+                         ator='gestor',perfil='gestor',justificativa='Encerramento confirmado')
+    assert d2['status']=='resolvida'

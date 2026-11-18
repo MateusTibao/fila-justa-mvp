@@ -38,7 +38,7 @@ def test_ready_handles_database_exception(client):
 
 
 def test_index_renders_priorities(client):
-    dados = {'itens':[{'rank':1,'cluster_id':'C-1','titulo':'Buraco — Tucuruvi',
+    dados = {'total':1,'pagina':1,'paginas':1,'busca':'','itens':[{'rank':1,'cluster_id':'C-1','titulo':'Buraco — Tucuruvi',
                      'area_nome':'Tucuruvi','score_0_100':51.55,
                      'score_pct':51.55,'faixa':'Intermediária','n_relatos':3,
                      'acompanhamento':'nao_iniciado'}]}
@@ -55,7 +55,7 @@ def test_index_renders_priorities(client):
 
 
 def test_index_handles_database_failure(client):
-    with patch('fj_publico.indicadores_gold', side_effect=RuntimeError('Banco indisponível')):
+    with patch('fj_publico.listar_gold', side_effect=RuntimeError('Banco indisponível')):
         response = client.get('/')
     assert response.status_code == 503
     assert 'temporariamente indisponíveis' in response.get_data(as_text=True)
@@ -67,12 +67,13 @@ def test_catalogo_publico_sem_login(client):
                      'faixa':'Elevada','n_relatos':5,'acompanhamento':'nao_iniciado'}],
              'total':1,'pagina':1,'paginas':1,'busca':'fj-02'}
     with patch('fj_publico.listar_gold', return_value=dados) as consulta:
-        response = client.get('/ocorrencias?q=fj-02')
+        response = client.get('/?q=fj-02')
     assert response.status_code == 200
     assert 'fj-02' in response.get_data(as_text=True)
     assert '88.00' in response.get_data(as_text=True)
     assert 'style="' not in response.get_data(as_text=True)
     assert consulta.call_args.kwargs['busca']=='fj-02'
+    assert client.get('/ocorrencias?q=fj-02').status_code == 302
 
 
 def test_api_catalogo_publica(client):
@@ -90,9 +91,26 @@ def test_detalhe_publico(client):
     with patch('fj_publico.obter_gold',return_value=registro):
         res=client.get('/ocorrencias/c-1')
     assert res.status_code==200
-    assert 'Pontuação calculada por equidade' in res.get_data(as_text=True)
+    html=res.get_data(as_text=True)
+    assert 'Pontuação calculada por equidade' in html
+    assert 'Fila Gold do processamento analítico' not in html
+    assert 'A prioridade é obtida automaticamente da Gold' not in html
+    assert 'Não substitui o protocolo' not in html
+    assert html.count('>Público</a>') == 1 and html.count('>Gestor</a>') == 1
 
 
 def test_login_indisponivel_sem_config(client):
     if not app.config.get('OP_ENGINE'):
         assert client.get('/login').status_code == 503
+
+def test_nav_publica_e_texto_da_home(client):
+    dados={'itens':[],'total':0,'pagina':1,'paginas':1,'busca':''}
+    resumo={'total':0,'areas':0,'media_score':0,'elevadas':0,'tipos':[],'distritos':[]}
+    with patch('fj_publico.listar_gold',return_value=dados), patch(
+            'fj_publico.indicadores_gold',return_value=resumo):
+        html=client.get('/').get_data(as_text=True)
+    assert 'O Fila Justa organiza ocorrências da base SP156, com indicadores' in html
+    assert 'SP156 e de relatos simulados' not in html
+    assert html.count('>Público</a>') == 1
+    assert html.count('>Gestor</a>') == 1
+    assert '<form class="search-panel"' in html

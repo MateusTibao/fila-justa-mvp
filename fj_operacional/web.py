@@ -62,18 +62,12 @@ def criar_blueprint(*, engine, usuario_atual, validar_csrf, token_csrf):
 
     @bp.get('/gestao/demandas')
     def tela_demandas():
-        busca = request.args.get('q', '')[:120]
-        situacao = request.args.get('status', '')
-        pagina = request.args.get('page', '1', type=int) or 1
-        dados = repo.listar(busca=busca, status=situacao, pagina=pagina)
-        return render_template('demandas.html', dados=dados, busca=busca,
-                               situacao=situacao, perfil=contexto()['perfil'],
-                               csrf_token=token_csrf())
+        # Compatibilidade com links antigos, sem criar uma terceira área no app.
+        return redirect(url_for('fj_operacional.tela_kanban'))
 
     @bp.get('/gestao/dashboard')
     def dashboard():
-        return render_template('dashboard.html', metricas=repo.metricas(),
-                               perfil=contexto()['perfil'], csrf_token=token_csrf())
+        return redirect(url_for('fj_operacional.tela_kanban'))
 
     @bp.get('/api/gestao/demandas')
     def listar():
@@ -93,14 +87,6 @@ def criar_blueprint(*, engine, usuario_atual, validar_csrf, token_csrf):
     def historico(demanda_id):
         return jsonify(repo.historico_da_demanda(demanda_id))
 
-    @bp.route("/api/gestao/demandas", methods=["POST"])
-    def criar():
-        usuario = contexto()
-        j = request.get_json(silent=True) or {}
-        return jsonify(repo.criar_manual(ator=usuario["id"], perfil=usuario["perfil"],
-            titulo=j.get("titulo", ""), descricao=j.get("descricao", ""),
-            tipo=j.get("tipo"), area_nome=j.get("area_nome"), prazo_em=j.get("prazo_em"))), 201
-
     @bp.get("/api/gestao/entrada")
     def entrada():
         # Projeção da Gold em tempo de consulta; nenhuma linha operacional criada.
@@ -113,24 +99,6 @@ def criar_blueprint(*, engine, usuario_atual, validar_csrf, token_csrf):
         return jsonify(repo.acompanhar_gold(
             ator=usuario["id"], perfil=usuario["perfil"],
             cluster_id=j.get("cluster_id", "")))
-
-    @bp.route("/api/gestao/importar-gold", methods=["POST"])
-    def importar():
-        usuario = contexto()
-        j = request.get_json(silent=True) or {}
-        return jsonify(repo.importar_gold(ator=usuario["id"], perfil=usuario["perfil"],
-            cluster_id=j.get("cluster_id", ""))), 200
-
-    @bp.route("/api/gestao/demandas/<demanda_id>", methods=["PATCH"])
-    def editar(demanda_id):
-        usuario = contexto()
-        j = request.get_json(silent=True) or {}
-        if not isinstance(j.get("versao"), int) or isinstance(j["versao"], bool):
-            return jsonify({"erro": "Informe a versão inteira da demanda"}), 422
-        return jsonify(repo.editar(demanda_id=demanda_id, versao=j["versao"],
-            ator=usuario["id"], perfil=usuario["perfil"],
-            titulo=j.get("titulo", ""), descricao=j.get("descricao", ""),
-            tipo=j.get("tipo"), area_nome=j.get("area_nome"), prazo_em=j.get("prazo_em")))
 
     @bp.route("/api/gestao/demandas/<demanda_id>/status", methods=["POST"])
     def status(demanda_id):

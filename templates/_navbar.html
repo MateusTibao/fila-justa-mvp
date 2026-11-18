@@ -1,0 +1,14 @@
+{# Navegação única: duas áreas visíveis em qualquer tela. #}
+<header class="site-header"><div class="container header-content">
+<a href="{{ url_for('index') }}" class="brand" aria-label="Fila Justa — consulta pública">
+<img src="{{ url_for('static',filename='fila-justa-logo.svg') }}" alt="Fila Justa"></a>
+<nav class="main-nav" aria-label="Navegação principal">
+<a href="{{ url_for('index') }}" {% if area_ativa == 'publico' %}class="current" aria-current="page"{% endif %}>Público</a>
+<a href="{{ url_for('login') }}" {% if area_ativa == 'gestor' %}class="current" aria-current="page"{% endif %}>Gestor</a>
+</nav>
+{% if perfil is defined and perfil %}<div class="nav-account"><span>Equipe · {{ perfil }}</span>
+<form action="{{ url_for('logout') }}" method="post">
+<input name="csrf_token" type="hidden" value="{{ csrf_token }}">
+<button class="outline-button" type="submit">Sair</button>
+</form></div>{% endif %}
+</div></header>

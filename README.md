@@ -13,39 +13,30 @@
 
 **Fontes analíticas:** SP156, IBGE Censo 2022, Open-Meteo e relatos simulados. **ODS:** 9, 10, 11 e 13. **Natureza:** protótipo acadêmico, não oficial da Prefeitura.
 
-## Funcionalidades
+## Funcionalidades: duas áreas
 
-A consulta pública não exige login nem schema operacional. A gestão operacional é habilitada **somente** quando os dois valores `OPERATIONAL_DATABASE_URL` e `FJ_SESSION_SECRET` estão configurados, e após executar as migrações em um banco de testes:
+O aplicativo apresenta **apenas duas opções principais de navegação**, sempre na mesma posição: **Público** e **Gestor**.
 
-| Tela | Função |
-|---|---|
-| `/login` | Autenticação de operador, gestor ou administrador |
-| `/gestao/demandas` | Lista de demandas com busca, filtro e paginação |
-| `/gestao/kanban` | Entrada analítica automática e quadro de acompanhamento com histórico e movimentações |
-| `/gestao/dashboard` | Indicadores de gestão com gráficos de etapas, distribuição territorial, categorias e movimentos recentes |
-| `/` | Observatório público: KPIs, gráficos de tipos, territórios e faixas de pontuação calculadas da Gold |
-| `/ocorrencias` | **Todas as ocorrências da Gold**, com busca por ID, título, categoria ou distrito e paginação |
-| `/ocorrencias/<cluster_id>` | Detalhe público, pontuação, explicação analítica e acompanhamento (quando existe) |
-| `/api/ocorrencias` | Consulta JSON paginada, somente leitura, sem autenticação |
-| `/gestao/kanban` | **Entrada automática da fila analítica**: gestor encaminha cartão existente, sem novo cadastro |
-| `/gestao/dashboard` | Gráficos dos atendimentos registrados e movimentações reais dos últimos sete dias |
+| Área | Página principal | O que faz |
+|---|---|---|
+| **Público** | `/` | Busca demandas por título ou ID, exibe pontuação calculada pela Gold, situação atual e detalhamento sem login |
+| **Gestor** | `/gestao/kanban` | Mostra primeiro o Kanban dos acompanhamentos e, abaixo, as demandas recebidas para encaminhamento; registra mudanças de etapa ou justificativas mantendo a mesma etapa |
 
-**Etapas operacionais:** recebida → em triagem → em atendimento → em conferência → concluída; também existe arquivada. A prioridade não é atribuída manualmente e não depende de prazo. Gestor/administrador validam conclusões. Cada mudança registra autor, horário, versão e justificativa. Alterações concorrentes retornam HTTP 409.
+As URLs técnicas de `/login`, `/ocorrencias/<cluster_id>`, `/api/...`, `/health` e `/ready` continuam disponíveis para autenticação, detalhes, integração e monitoramento, mas **não aparecem como áreas adicionais no menu**. Os endereços antigos `/ocorrencias`, `/gestao/dashboard` e `/gestao/demandas` redirecionam para a página correspondente.
 
-A consulta lê a **prioridade corrente** diretamente da Gold, sem gerar uma demanda operacional por ocorrência. Ao selecionar **Iniciar acompanhamento** em um cartão, o gestor cria o registro de acompanhamento uma única vez e o encaminha para triagem. Repetir essa ação não apaga histórico nem altera a etapa já registrada. O score armazenado no acompanhamento identifica a pontuação no momento da entrada; o catálogo público continua exibindo a pontuação corrente da Gold. O módulo GenAI está em repositório separado e **não foi acoplado** a esta alteração.
+A consulta pública não exige login. A área do gestor só é habilitada com `OPERATIONAL_DATABASE_URL` e `FJ_SESSION_SECRET` configurados, após aplicar as migrações operacionais. O gestor não abre uma nova demanda manualmente, não edita a origem nem define a pontuação: o pipeline Bronze/Silver/Gold fornece os registros e o ranking.
 
-## Consulta pública e simulação
+Na primeira interação com uma demanda recebida, **Encaminhar para triagem** vincula a ocorrência à camada operacional de forma idempotente. A partir daí, o gestor/equipe podem atualizar o andamento. **Toda atualização pela interface exige justificativa, inclusive para registrar progresso sem trocar a etapa no Kanban**. Essa observação é armazenada no histórico (`tipo_evento=edicao`, sem troca de status), com autoria, horário e controle de versão. Alterações concorrentes retornam HTTP 409.
 
-- A fila é alimentada pelo snapshot `gold.mart_fila_priorizacao` do pipeline SP156 + IBGE + clima + relatos simulados; o aplicativo **não coleta diretamente** esses sites em tempo real e não abre protocolo municipal.
-- Cartões, posição e pontuação são gerados pela Gold, sem cadastro manual. O buscador aceita `cluster_id`, categoria, título construído de categoria/distrito e distrito. A paginação consulta a fonte sem trazer tudo para a página.
-- A aba de simulação funciona **somente no navegador** e na sessão atual; não grava banco nem indica atendimento público efetivamente realizado.
-- Na operação, apenas o gestor/autorizado registra o início do acompanhamento e a equipe atualiza etapas com auditoria. A ação `/api/gestao/acompanhar` exige login e CSRF.
-- Gráficos públicos mostram a **fotografia atual** da Gold, e não uma série de evolução histórica. O gráfico diário de movimentações do painel de gestão é construído dos eventos realmente gravados.
-- Status de atendimento e pontuação de prioridade são informações independentes; nunca deduzir atendimento concluído a partir do score.
+A mudança de estado respeita a sequência e as permissões já definidas no módulo operacional. Ações de criar demanda manual, importar por ID e editar seus dados não ficam mais disponíveis por rotas HTTP; permanecem funções internas/legadas de persistência. O formulário de prazo de conclusão foi retirado da interface do gestor; prazos já registrados continuam visíveis, com o aviso **Prazo vencido** conforme o calendário de São Paulo.
 
-**Datas operacionais:** a previsão de conclusão é informada e exibida em **dd/mm/aaaa**, sem horário. O dia inteiro é considerado, no fuso `America/Sao_Paulo`: se o prazo previsto é 17/11, o cartão só recebe a marcação **Prazo vencido** a partir de 18/11, desde que continue aberto. Ocorrências concluídas/arquivadas não são marcadas como vencidas. Os carimbos de movimentação aparecem somente com a data na interface; os horários completos continuam preservados na auditoria.
+A interface pública mostra a situação persistida quando existe acompanhamento operacional, ou **Sem acompanhamento registrado** quando ainda não há atualização. Nenhuma simulação altera ou mascara esse estado. Os indicadores agregados permanecem disponíveis em uma seção expansível da página pública. O módulo GenAI continua separado e não foi integrado.
 
-[Contrato técnico da fila e da demonstração](docs/FLUXO_PUBLICO.md).
+## Origem e limites
+
+As ocorrências do protótipo são processadas pelo pipeline já existente, que combina fontes SP156, IBGE, clima e relatos simulados na base analítica. A descrição curta exibida na página pública menciona apenas SP156, conforme o texto de interface definido. Essa alteração editorial **não retira os dados simulados que possam estar presentes na Gold**.
+
+A pontuação da Gold não constitui prazo de atendimento nem indicador de serviços concluídos. As datas aparecem como `dd/mm/aaaa`, mas os instantes completos permanecem no histórico do PostgreSQL.
 
 ## Saúde e disponibilidade
 
@@ -120,11 +111,11 @@ flask --app app run
 
 ## Verificação antes de publicar
 
-1. Testes unitários, HTTP e de regressão aprovados.
-2. PostgreSQL de testes com as duas migrações aplicadas; `app_operador` não altera a Gold.
-3. Login, logout, bloqueio de convidados e CSRF verificados.
-4. Gestor cria/importa, operador executa, gestor conclui, histórico e HTTP 409 conferidos.
-5. Filtragem, paginação, dashboard e Kanban operando com dados reais de teste.
-6. Avaliar CI e deploy Azure separadamente, sem publicar automaticamente enquanto houver teste vermelho.
+1. Executar os testes Python, Flask e validação de sintaxe JavaScript no CI.
+2. Confirmar `/` com busca, detalhamento e status público sem login.
+3. Confirmar login/CSRF, Kanban primeiro, entrada de demandas embaixo, sem edição nem cadastro manual.
+4. Validar atualização com nova etapa e atualização mantendo a etapa, ambas com justificativa.
+5. Validar histórico, controle de versão (HTTP 409), restrições de perfil e prazo vencido.
+6. Executar o deploy Azure **manualmente**, após o CI verde e a verificação das conexões.
 
-**Limitações:** perfis internos são provisionados por CLI; não há cadastro aberto, notificações ou upload de anexos. O protótipo não inclui integração efetiva ao repositório GenAI e não se apresenta como serviço oficial.
+**Limitações:** protótipo acadêmico não oficial, sem integração de GenAI e com atualização de dados limitada à última execução do pipeline.

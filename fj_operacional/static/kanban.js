@@ -1,261 +1,171 @@
 'use strict';
-const CFG = {csrf: document.querySelector('meta[name=fj-csrf]').content, perfil: document.body.dataset.perfil};
-const ROTAS = {
-  kanban: '/api/gestao/kanban',
-  demandas: '/api/gestao/demandas',
-  importar: '/api/gestao/importar-gold',
-  entrada: '/api/gestao/entrada',
-  acompanhar: '/api/gestao/acompanhar'
-};
-const PROXIMAS = {
-  nova: ['pendente','cancelada'],
-  pendente: ['em_andamento','cancelada'],
-  em_andamento: ['aguardando_validacao','cancelada'],
-  aguardando_validacao: ['em_andamento','resolvida','cancelada'],
-  resolvida: ['em_andamento'], cancelada: []
-};
-const LABELS = {
-  nova: 'Recebida', pendente: 'Em triagem', em_andamento: 'Em atendimento',
-  aguardando_validacao: 'Em conferência', resolvida: 'Concluída', cancelada: 'Arquivada'
-};
-const gestor = CFG.perfil === 'gestor' || CFG.perfil === 'administrador';
-let atual = null, criando = false;
-const el = (id) => document.getElementById(id);
-const aviso = (mensagem) => {el('aviso').textContent = mensagem || '';};
-const campo = (id) => el(id).value;
+// O gestor apenas registra movimentações e justificativas. A Gold define prioridades.
+const CFG = {csrf:document.querySelector('meta[name="fj-csrf"]').content,
+             perfil:document.body.dataset.perfil};
+const URLS = {kanban:'/api/gestao/kanban',entrada:'/api/gestao/entrada',
+              acompanhar:'/api/gestao/acompanhar',demandas:'/api/gestao/demandas'};
+const ROTULOS = {nova:'Recebida',pendente:'Em triagem',em_andamento:'Em atendimento',
+  aguardando_validacao:'Em conferência',resolvida:'Concluída',cancelada:'Arquivada'};
+const PROXIMAS = {nova:['pendente','cancelada'],pendente:['em_andamento','cancelada'],
+  em_andamento:['aguardando_validacao','cancelada'],
+  aguardando_validacao:['em_andamento','resolvida','cancelada'],
+  resolvida:['em_andamento'],cancelada:[]};
+const gestor = ['gestor','administrador'].includes(CFG.perfil);
+const el = id => document.getElementById(id);
+const aviso = msg => { el('aviso').textContent = msg || ''; };
+let atual = null;
 
-async function chamar(url, method = 'GET', body) {
-  const headers = {'Accept': 'application/json'};
-  if (body !== undefined) {
-    headers['Content-Type'] = 'application/json';
-    headers['X-CSRFToken'] = CFG.csrf;
+async function api(url,method='GET',payload) {
+  const headers={'Accept':'application/json'};
+  if (payload!==undefined) {
+    headers['Content-Type']='application/json';
+    headers['X-CSRFToken']=CFG.csrf;
   }
-  const response = await fetch(url, {method, headers, credentials:'same-origin',
-                                      body: body === undefined ? undefined : JSON.stringify(body)});
-  let result;
-  try {result = await response.json();} catch {result = {};}
-  if (!response.ok) throw new Error(result.erro || `Falha HTTP ${response.status}`);
-  return result;
+  const resposta=await fetch(url,{method,headers,credentials:'same-origin',
+    body:payload===undefined?undefined:JSON.stringify(payload)});
+  let dados={};
+  try {dados=await resposta.json();} catch {}
+  if (!resposta.ok) throw new Error(dados.erro||'Falha ao consultar ou atualizar.');
+  return dados;
 }
-
-function tornarTexto(tag, texto, classe) {
-  const node = document.createElement(tag);
-  node.textContent = texto == null ? '' : String(texto);
-  if (classe) node.className = classe;
-  return node;
-}
-
-function card(d) {
-  const n = document.createElement('article');
-  n.className = 'card';
-  n.draggable = true;
-  n.tabIndex = 0;
-  n.setAttribute('role','button');
-  n.setAttribute('aria-label', 'Abrir demanda: ' + d.titulo);
-  n.appendChild(tornarTexto('h3',d.titulo));
-  n.appendChild(tornarTexto('p',d.area_nome || d.tipo || 'Sem distrito informado'));
-  n.appendChild(tornarTexto('span',d.score_origem == null ? 'Pontuação de origem não disponível' :
-    'Prioridade: ' + Number(d.score_origem).toFixed(2) + ' / 100', 'badge'));
-  if (d.prazo_data) {
-    n.appendChild(tornarTexto('span', d.prazo_vencido ? 'Prazo vencido' :
-      'Conclusão prevista: ' + d.prazo_data,
-      d.prazo_vencido ? 'badge prazo-vencido' : 'card-due'));
-    if (d.prazo_vencido) n.appendChild(tornarTexto('small',
-      'Data prevista: ' + d.prazo_data, 'card-due'));
-  }
-  n.appendChild(tornarTexto('small',d.cluster_id ? 'ID: ' + d.cluster_id : 'Registro operacional', 'card-code'));
-  n.addEventListener('click', () => abrir(d.id));
-  n.addEventListener('keydown', e => {if(e.key==='Enter'||e.key===' '){e.preventDefault();abrir(d.id);}});
-  n.addEventListener('dragstart', e => {e.dataTransfer.setData('text/plain', d.id); e.dataTransfer.effectAllowed='move';});
+function texto(tag,valor,classe) {
+  const n=document.createElement(tag);
+  n.textContent=valor == null ? '' : String(valor);
+  if (classe)n.className=classe;
   return n;
 }
-
-async function carregarEntrada() {
-  const alvo = el('entrada-fila');
-  if (!alvo) return;
-  alvo.replaceChildren();
-  try {
-    const dados = await chamar(ROTAS.entrada);
-    if (!(dados.itens || []).length) {
-      alvo.appendChild(tornarTexto('p','Não há cartões novos nas primeiras posições consultadas. Consulte o catálogo para pesquisar outros IDs.'));
-      return;
-    }
-    for (const d of dados.itens) {
-      const n = document.createElement('article');
-      n.className = 'inbox-card';
-      n.appendChild(tornarTexto('small','Posição #' + d.rank + ' · ID: ' + d.cluster_id));
-      n.appendChild(tornarTexto('strong',d.titulo));
-      n.appendChild(tornarTexto('span','Pontuação calculada: ' + Number(d.score_origem).toFixed(2) + ' / 100','inbox-score'));
-      if (gestor) {
-        const btn = tornarTexto('button','Iniciar acompanhamento');
-        btn.type = 'button';
-        btn.className = 'secondary';
-        btn.addEventListener('click',async()=>{
-          btn.disabled=true;
-          try {
-            const atualizado = await chamar(ROTAS.acompanhar,'POST',{cluster_id:d.cluster_id});
-            await carregar();
-            await abrir(atualizado.id);
-          } catch(err) { aviso(err.message); btn.disabled=false; }
-        });
-        n.appendChild(btn);
-      } else {
-        n.appendChild(tornarTexto('small','Encaminhamento inicial reservado ao gestor.'));
-      }
-      alvo.appendChild(n);
-    }
-  } catch(err) {
-    alvo.appendChild(tornarTexto('p','Entrada analítica indisponível nesta consulta.'));
-  }
+function podeMudar(origem,destino) {
+  if (!PROXIMAS[origem]?.includes(destino))return false;
+  if (gestor)return true;
+  return !['resolvida','cancelada','pendente'].includes(destino) && origem!=='resolvida';
 }
-
+function opcoes(origem) {
+  const validas=[];
+  if (gestor || !['resolvida','cancelada'].includes(origem))validas.push(origem);
+  validas.push(...(PROXIMAS[origem]||[]).filter(s=>podeMudar(origem,s)));
+  return validas;
+}
+function formatarData(iso) {
+  if (!iso)return '';
+  return new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',
+    year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(iso));
+}
+function cartao(d) {
+  const n=texto('article','', 'card');
+  n.tabIndex=0;n.draggable=true;n.setAttribute('role','button');
+  n.setAttribute('aria-label','Atualizar demanda: '+d.titulo);
+  n.append(texto('h3',d.titulo),texto('p',d.area_nome||d.tipo||'Distrito não informado'));
+  n.append(texto('span',d.score_origem==null?'Pontuação não disponível':
+    'Prioridade: '+Number(d.score_origem).toFixed(2)+' / 100','badge'));
+  if(d.prazo_data) {
+    n.append(texto('span',d.prazo_vencido?'Prazo vencido':'Conclusão prevista: '+d.prazo_data,
+      d.prazo_vencido?'badge prazo-vencido':'card-due'));
+    if(d.prazo_vencido)n.append(texto('small','Previsão: '+d.prazo_data,'card-due'));
+  }
+  n.append(texto('small','ID: '+(d.cluster_id||d.id),'card-code'));
+  n.addEventListener('click',()=>abrir(d.id));
+  n.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();abrir(d.id);}});
+  n.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',d.id);
+                                      e.dataTransfer.effectAllowed='move';});
+  return n;
+}
 async function carregar() {
   aviso('');
   try {
-    const dados = await chamar(ROTAS.kanban);
-    document.querySelectorAll('.column').forEach(c => {
-      const estado = c.dataset.status;
-      c.querySelector('.count').textContent = dados[estado]?.total ?? 0;
-      const lista = c.querySelector('.cards');
-      lista.replaceChildren(...(dados[estado]?.itens || []).map(card));
+    const dados=await api(URLS.kanban);
+    document.querySelectorAll('.column').forEach(col=>{
+      const s=col.dataset.status;
+      col.querySelector('.count').textContent=dados[s]?.total??0;
+      col.querySelector('.cards').replaceChildren(...(dados[s]?.itens||[]).map(cartao));
     });
     await carregarEntrada();
-  } catch(e) {aviso(e.message);}
+  } catch(err) {aviso(err.message);}
 }
-
-document.querySelectorAll('.column').forEach(coluna => {
-  coluna.addEventListener('dragover', e=>{e.preventDefault();coluna.classList.add('drag-over');});
-  coluna.addEventListener('dragleave', ()=>coluna.classList.remove('drag-over'));
-  coluna.addEventListener('drop', async e=>{
-    e.preventDefault();coluna.classList.remove('drag-over');
-    const id=e.dataTransfer.getData('text/plain');
-    if(!id)return;
-    try{
-      const d=await chamar(`${ROTAS.demandas}/${encodeURIComponent(id)}`);
-      const destino=coluna.dataset.status;
-      if(!PROXIMAS[d.status]?.includes(destino)){aviso('Transição não permitida.');return;}
-      if(!gestor&&(destino==='cancelada'||destino==='resolvida'||d.status==='resolvida'||destino==='pendente')){
-        aviso('Esta ação exige perfil gestor.');return;
-      }
-      if(destino==='cancelada'||destino==='resolvida'||d.status==='resolvida'){
-        await abrir(id);
-        el('novo-status').value=destino;
-        el('justificativa').focus();
-        return;
-      }
-      await chamar(`${ROTAS.demandas}/${encodeURIComponent(id)}/status`,'POST',
-                   {status:destino,versao:d.versao,justificativa:''});
-      await carregar();
-    }catch(err){aviso(err.message);}
-  });
-});
-
-function dataBr(iso){
-  if (!iso) return '';
-  return new Intl.DateTimeFormat('pt-BR', {
-    timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric'
-  }).format(new Date(iso));
+async function carregarEntrada() {
+  const alvo=el('entrada-fila');alvo.replaceChildren();
+  try {
+    const dados=await api(URLS.entrada);
+    if(!dados.itens?.length){
+      alvo.append(texto('p','Não há novos cartões entre as prioridades consultadas.'));
+      return;
+    }
+    for(const d of dados.itens) {
+      const box=texto('article','','inbox-card');
+      box.append(texto('small','Posição #'+d.rank+' · ID: '+d.cluster_id),
+                 texto('strong',d.titulo),
+                 texto('span','Pontuação: '+Number(d.score_origem).toFixed(2)+' / 100','inbox-score'));
+      const b=texto('button','Encaminhar para triagem');
+      b.type='button';b.className='secondary';b.disabled=!gestor;
+      b.addEventListener('click',async()=>{
+        b.disabled=true;
+        try {
+          const registro=await api(URLS.acompanhar,'POST',{cluster_id:d.cluster_id});
+          await carregar();
+          await abrir(registro.id);
+        } catch(err) {aviso(err.message);b.disabled=false;}
+      });
+      box.append(b);alvo.append(box);
+    }
+  } catch(err){alvo.append(texto('p','Entrada analítica temporariamente indisponível.'));}
 }
-function prazoFormulario(){
-  const valor=campo('prazo_em').trim();
-  if (!valor) return null;
-  const partes=valor.split('/');
-  const valido=partes.length===3 && [2,2,4].every((len,i)=>
-    partes[i].length===len && [...partes[i]].every(ch=>ch>='0' && ch<='9'));
-  if (!valido) throw new Error('Informe a data prevista no formato dd/mm/aaaa.');
-  return valor;
-}
-function dadosFormulario(){
-  return {titulo:campo('titulo'),descricao:campo('descricao'),tipo:campo('tipo'),
-          area_nome:campo('area_nome'),prazo_em:prazoFormulario()};
-}
-function transicoesPermitidas(status){
-  return (PROXIMAS[status] || []).filter(destino => gestor ||
-    (destino!=='resolvida'&&destino!=='cancelada'&&destino!=='pendente'&&status!=='resolvida'));
-}
-function preencher(d){
-  el('modal-erro').textContent='';
-  el('titulo').value=d?.titulo||'';
-  el('descricao').value=d?.descricao||'';
-  el('tipo').value=d?.tipo||'';
-  el('area_nome').value=d?.area_nome||'';
-  el('prazo_em').value=d?.prazo_data || '';
-  el('prazo-situacao').textContent=d?.prazo_vencido ? 'Prazo vencido: a conclusão não foi registrada até a data prevista.' : '';
-  el('justificativa').value='';
-  el('dados-origem').textContent=d ?
-    `Origem: ${d.origem} · ID: ${d.cluster_id||d.id} · Pontuação na entrada: ${d.score_origem == null ? 'não calculada' : Number(d.score_origem).toFixed(2) + ' / 100'} · Versão: ${d.versao}`:
-    'Nova demanda manual, aguardando triagem.';
-  el('modal-titulo').textContent=d?`Acompanhamento · ${LABELS[d.status]}`:'Registro demonstrativo';
-  const sel=el('novo-status');sel.replaceChildren();
-  for(const s of d?transicoesPermitidas(d.status):[]){
-    const option=document.createElement('option');option.value=s;option.textContent=LABELS[s];sel.appendChild(option);
-  }
-  sel.disabled=sel.options.length===0;
-  el('btn-transicao').disabled=!d||!sel.options.length;
-  el('btn-transicao').hidden=!d;
-  el('btn-salvar').hidden=!gestor || !d || ['resolvida','cancelada'].includes(d.status);
-  el('btn-salvar').disabled=!gestor || !d || ['resolvida','cancelada'].includes(d.status);
-  el('btn-salvar').textContent=d?'Salvar alterações':'Criar demanda';
-  el('historico').replaceChildren();
-  for(const field of ['titulo','descricao','tipo','area_nome']) el(field).disabled=true;
-  el('prazo_em').disabled=!gestor || !d || ['resolvida','cancelada'].includes(d.status);
-}
-async function abrir(id){
-  try{
-    criando=false;
-    atual=await chamar(`${ROTAS.demandas}/${encodeURIComponent(id)}`);
-    preencher(atual);
-    const h=await chamar(`${ROTAS.demandas}/${encodeURIComponent(id)}/historico`);
-    el('historico').appendChild(tornarTexto('h3','Histórico de atividades'));
-    for(const ev of h){
-      const data=ev.ocorrido_data || dataBr(ev.ocorrido_em);
-      el('historico').appendChild(tornarTexto('p',
-        `${data} · ${ev.autor_id} · ${ev.tipo_evento} · ${ev.status_anterior||'—'} → ${ev.status_novo}${ev.justificativa?' · '+ev.justificativa:''}`));
+async function abrir(id,destino) {
+  try {
+    atual=await api(URLS.demandas+'/'+encodeURIComponent(id));
+    el('modal-erro').textContent='';
+    el('modal-titulo').textContent=atual.titulo;
+    el('dados-origem').textContent='ID: '+(atual.cluster_id||atual.id)+' · Pontuação: '+
+      (atual.score_origem==null?'não informada':Number(atual.score_origem).toFixed(2)+' / 100');
+    el('prazo-situacao').textContent=atual.prazo_vencido?'Prazo vencido · '+atual.prazo_data:
+      (atual.prazo_data?'Conclusão prevista: '+atual.prazo_data:'');
+    el('justificativa').value='';
+    const select=el('novo-status');select.replaceChildren();
+    for(const s of opcoes(atual.status)) {
+      const option=document.createElement('option');
+      option.value=s;option.textContent=ROTULOS[s]+(s===atual.status?' (manter etapa)':'');
+      select.append(option);
+    }
+    select.value=destino&&opcoes(atual.status).includes(destino)?destino:atual.status;
+    el('btn-transicao').disabled=!select.options.length;
+    const h=await api(URLS.demandas+'/'+encodeURIComponent(id)+'/historico');
+    const historico=el('historico');historico.replaceChildren(texto('h3','Histórico de atualizações'));
+    for(const e of h) {
+      const descricao=(e.status_anterior===e.status_novo?'Atualização na etapa: '+ROTULOS[e.status_novo]:
+        (ROTULOS[e.status_anterior]||'Recebida')+' → '+ROTULOS[e.status_novo]);
+      historico.append(texto('p',(e.ocorrido_data||formatarData(e.ocorrido_em))+
+        ' · '+descricao+(e.justificativa?' · '+e.justificativa:'')));
     }
     el('detalhe').showModal();
-  }catch(e){aviso(e.message);}
+  } catch(err){aviso(err.message);}
 }
-
-el('btn-nova').addEventListener('click',()=>{
-  if(!gestor)return;
-  criando=true;atual=null;preencher(null);el('detalhe').showModal();
+document.querySelectorAll('.column').forEach(col=>{
+  col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('drag-over');});
+  col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
+  col.addEventListener('drop',async e=>{
+    e.preventDefault();col.classList.remove('drag-over');
+    const id=e.dataTransfer.getData('text/plain');if(!id)return;
+    try {
+      const d=await api(URLS.demandas+'/'+encodeURIComponent(id));
+      if(d.status!==col.dataset.status&&!podeMudar(d.status,col.dataset.status)){
+        aviso('A mudança de etapa selecionada não é permitida.');return;
+      }
+      await abrir(id,col.dataset.status);
+      el('justificativa').focus();
+    } catch(err){aviso(err.message);}
+  });
 });
-el('btn-nova').hidden=true;
-el('btn-importar').hidden=true;
-el('btn-importar').addEventListener('click',()=>{
-  el('cluster-id').value='';
-  el('importar-erro').textContent='';
-  el('importar-modal').showModal();
-  el('cluster-id').focus();
-});
-el('confirmar-importar').addEventListener('click',async()=>{
-  const cid=campo('cluster-id').trim();
-  if(!cid){el('importar-erro').textContent='Informe o cluster_id.';return;}
-  try{
-    const d=await chamar(ROTAS.importar,'POST',{cluster_id:cid});
-    el('importar-modal').close();
-    await carregar();await abrir(d.id);
-  }catch(e){el('importar-erro').textContent=e.message;}
-});
-el('btn-salvar').addEventListener('click',async()=>{
-  if(!gestor)return;
-  try{
-    const dados=dadosFormulario();
-    const d=criando ? await chamar(ROTAS.demandas,'POST',dados) :
-      await chamar(`${ROTAS.demandas}/${encodeURIComponent(atual.id)}`,'PATCH',
-                   {...dados,versao:atual.versao});
-    el('detalhe').close();await carregar();await abrir(d.id);
-  }catch(e){el('modal-erro').textContent=e.message;}
-});
+el('fechar-modal').addEventListener('click',()=>el('detalhe').close());
 el('btn-transicao').addEventListener('click',async()=>{
   if(!atual)return;
-  try{
-    await chamar(`${ROTAS.demandas}/${encodeURIComponent(atual.id)}/status`,'POST',
-      {status:campo('novo-status'),versao:atual.versao,justificativa:campo('justificativa')});
+  const justificativa=el('justificativa').value.trim();
+  if(!justificativa){el('modal-erro').textContent='Informe a justificativa para registrar a atualização.';return;}
+  const botao=el('btn-transicao');botao.disabled=true;
+  try {
+    await api(URLS.demandas+'/'+encodeURIComponent(atual.id)+'/status','POST',
+      {status:el('novo-status').value,versao:atual.versao,justificativa});
     el('detalhe').close();await carregar();
-  }catch(e){el('modal-erro').textContent=e.message;}
+  } catch(err){el('modal-erro').textContent=err.message;}
+  finally{botao.disabled=false;}
 });
 carregar();
-
-const abrirId = new URLSearchParams(location.search).get('abrir');
-if (abrirId && /^[a-f0-9-]{36}$/.test(abrirId)) abrir(abrirId);
+const abrirId=new URLSearchParams(location.search).get('abrir');
+if(abrirId&&/^[a-z0-9-]{1,300}$/i.test(abrirId))abrir(abrirId);

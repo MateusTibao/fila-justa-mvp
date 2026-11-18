@@ -49,3 +49,14 @@ progress.activity-meter::-moz-progress-bar{background:#175bad;border-radius:5px}
 .detalhe-prazo input{letter-spacing:.03em;font-variant-numeric:tabular-nums}
 .records .badge.prazo-vencido{margin-right:8px}
 .records td small{display:inline-block;color:#697c8e}
+
+/* O Kanban ocupa o topo; entrada automática vem após as colunas. */
+.manager-main.container{max-width:1400px;padding-top:32px}
+.manager-main .heading{margin-bottom:23px}
+.manager-main .board{padding-bottom:14px;min-height:325px}
+.manager-main .inbox-panel{margin-top:32px}
+.manager-main .modal-body label{line-height:1.4}
+.manager-main .inbox-card button{margin-top:auto}
+.modal .modal-head{display:flex;align-items:center;justify-content:space-between}
+.modal .modal-actions button{width:auto}
+.modal .history{max-height:200px;overflow-y:auto}

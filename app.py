@@ -94,34 +94,29 @@ def security_headers(response):
 
 @app.get('/')
 def index():
+    """Página pública única: busca e consulta de situações sem autenticação."""
     from fj_publico import indicadores_gold, listar_gold
+    busca = request.args.get('q', '')[:120]
+    pagina = request.args.get('page', 1, type=int) or 1
     try:
-        resumo = indicadores_gold(get_connection)
-        catalogo = listar_gold(get_connection, por_pagina=6,
+        catalogo = listar_gold(get_connection, busca=busca, pagina=pagina,
                                 engine=app.config.get('OP_ENGINE'), log=app.logger)
-        return render_template('index.html', resumo=resumo, destaques=catalogo['itens'],
-                               error=False, operacional_ativo=operacional_configurado())
+        resumo = indicadores_gold(get_connection) if not busca else None
+        return render_template('index.html', resumo=resumo, catalogo=catalogo,
+                               destaques=catalogo['itens'], error=False,
+                               operacional_ativo=operacional_configurado())
     except (psycopg.Error, RuntimeError, ValueError):
-        app.logger.error('Painel público indisponível')
-        return render_template('index.html', resumo=None, destaques=[], error=True,
-                               operacional_ativo=operacional_configurado()), 503
+        app.logger.error('Consulta pública indisponível')
+        return render_template('index.html', resumo=None, destaques=[], catalogo={
+            'itens':[], 'total':0, 'pagina':1, 'paginas':1, 'busca':busca},
+            error=True, operacional_ativo=operacional_configurado()), 503
 
 
 @app.get('/ocorrencias')
 def ocorrencias():
-    from fj_publico import listar_gold
-    busca = request.args.get('q', '')[:120]
-    pagina = request.args.get('page', 1, type=int) or 1
-    try:
-        dados = listar_gold(get_connection, busca=busca, pagina=pagina,
-                            engine=app.config.get('OP_ENGINE'), log=app.logger)
-        return render_template('ocorrencias.html', dados=dados, error=False,
-                               operacional_ativo=operacional_configurado())
-    except (psycopg.Error, RuntimeError, ValueError):
-        app.logger.error('Consulta pública indisponível')
-        return render_template('ocorrencias.html', dados={'itens':[], 'total':0,
-                               'pagina':1,'paginas':1,'busca':busca},error=True,
-                               operacional_ativo=operacional_configurado()),503
+    """URL antiga: redireciona para a única página pública."""
+    return redirect(url_for('index', q=request.args.get('q','')[:120],
+                            page=request.args.get('page', 1, type=int) or 1), code=302)
 
 
 @app.get('/api/ocorrencias')

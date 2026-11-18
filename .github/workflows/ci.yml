@@ -56,7 +56,10 @@ jobs:
           python -m pip check
 
       - name: Conferir sintaxe Python
-        run: python -m compileall -q app.py fj_operacional tests
+        run: python -m compileall -q app.py fj_publico.py fj_operacional tests
+
+      - name: Conferir sintaxe JavaScript
+        run: node --check fj_operacional/static/kanban.js
 
       - name: Executar todos os testes
         run: python -m pytest -q

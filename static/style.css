@@ -78,3 +78,18 @@ progress.bar-track.muted-fill::-moz-progress-bar{background:#879caf}
 .badge.deadline-expired{background:#fce8e7;color:#9c2d29;font-weight:750;display:inline-block;align-self:flex-start;padding:6px 9px;font-size:12px;border-radius:5px}
 .deadline-alert{color:#9c2d29}
 .card-due{font-size:12px;color:#50677e;margin:5px 0}
+
+/* A navegação permanece a mesma nas duas áreas. */
+.main-nav{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-left:auto}
+.main-nav a{padding:7px 0;color:#31577d;text-decoration:none;font-size:14px;font-weight:750}
+.main-nav a.current{color:#134e9d;border-bottom:2px solid #1351b4}
+.nav-account{display:flex;align-items:center;gap:10px;color:#526982;font-size:12px}
+.nav-account form{margin:0}.nav-account .outline-button{padding:7px 12px}
+.dados-complementares{margin:45px 0;border-top:1px solid #d8e3ed;padding:18px 0}
+.dados-complementares>summary{font-size:15px;font-weight:750;color:#1351b4;cursor:pointer;margin-bottom:22px}
+.dados-complementares>summary:focus-visible{outline:2px solid #f5a623}
+.public-status{margin:8px 0 4px;padding:10px 12px;border-radius:7px;background:#f0f4f9;display:grid;gap:4px}
+.public-status span{font-size:11px;color:#5a7188}
+.public-status strong{font-size:13px;color:#173d61}
+.manager-main{max-width:1400px!important}
+@media(max-width:780px){.header-content{flex-wrap:wrap;padding-top:12px;padding-bottom:12px}.nav-account{width:100%;justify-content:flex-end}.main-nav{margin-left:auto}}

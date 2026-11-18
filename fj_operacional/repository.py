@@ -184,14 +184,25 @@ class DemandasRepository:
                 raise NaoEncontradoError("Demanda não encontrada")
             if int(versao) != row["versao"]:
                 raise ConflitoVersaoError("Demanda alterada por outro usuário; atualize a tela")
-            validar_transicao(row["status"], destino, perfil, justificativa)
+            # Permite registrar um novo andamento sem mover o cartão.
+            # Exige uma observação auditável; a versão impede sobrescrita concorrente.
+            if destino == row["status"]:
+                validar_perfil(perfil)
+                if not justificativa:
+                    raise RegraNegocioError("Informe a justificativa da atualização")
+                if destino in {"resolvida", "cancelada"} and perfil not in {"gestor", "administrador"}:
+                    raise SemPermissaoError("Atualização de registro encerrado exige gestor")
+                evento = "edicao"
+            else:
+                validar_transicao(row["status"], destino, perfil, justificativa)
+                evento = "transicao"
             agora = utcnow()
             alteradas = conn.execute(update(demandas).where(
                 demandas.c.id == demanda_id, demandas.c.versao == versao
             ).values(status=destino, versao=versao + 1, atualizado_em=agora)).rowcount
             if alteradas != 1:
                 raise ConflitoVersaoError("Versão desatualizada")
-            self._evento(conn, demanda_id=demanda_id, tipo_evento="transicao", anterior=row["status"],
+            self._evento(conn, demanda_id=demanda_id, tipo_evento=evento, anterior=row["status"],
                          novo=destino, justificativa=justificativa, autor_id=str(ator),
                          versao=versao + 1, agora=agora)
         return self.buscar(demanda_id)
