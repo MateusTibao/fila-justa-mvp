@@ -46,6 +46,7 @@ O motivo da pendência, os testes realizados, os riscos, as medidas compensatór
 ## Documentação da entrega Cloud (Etapa 12)
 
 - [Arquitetura Cloud e evidências de validação](docs/ETAPA_12_ARQUITETURA_CLOUD.md)
+- [Etapa 13 — Relatório final e roteiro de entrega](docs/ETAPA_13_RELATORIO_ENTREGA.md)
 - [Etapa 8 — Segurança: EM CONFIRMAÇÃO do professor](docs/ETAPA_8_SEGURANCA.md)
 - [CI/CD e autenticação OIDC](docs/CI_CD.md)
 
