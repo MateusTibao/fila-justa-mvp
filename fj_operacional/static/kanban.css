@@ -41,3 +41,11 @@ progress.activity-meter{appearance:none;-webkit-appearance:none;width:118px;heig
 progress.activity-meter::-webkit-progress-bar{background:#ecf1f6;border-radius:5px}
 progress.activity-meter::-webkit-progress-value{background:#175bad;border-radius:5px}
 progress.activity-meter::-moz-progress-bar{background:#175bad;border-radius:5px}
+
+/* Prazo previsto: destaque apenas quando ultrapassou a data de conclusão. */
+.badge.prazo-vencido{background:#fae6e6;color:#922020;font-weight:750}
+.card-due{display:block;font-size:11px;margin-top:9px;color:#566b80}
+.prazo-alerta{color:#922020;font-size:13px;font-weight:700;margin-top:-3px}
+.detalhe-prazo input{letter-spacing:.03em;font-variant-numeric:tabular-nums}
+.records .badge.prazo-vencido{margin-right:8px}
+.records td small{display:inline-block;color:#697c8e}

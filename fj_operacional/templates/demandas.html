@@ -11,13 +11,15 @@
 <option value="{{ valor }}" {% if situacao == valor %}selected{% endif %}>{{ nome }}</option>{% endfor %}
 </select></label><button type="submit">Filtrar</button></form>
 <p class="note">{{ dados.total }} registro(s) · página {{ dados.pagina }} de {{ dados.paginas }}</p>
-<div class="table-wrap"><table class="records"><thead><tr><th>Ocorrência</th><th>Território</th><th>Prioridade de origem</th><th>Etapa</th><th>Última movimentação</th><th>Consulta</th></tr></thead>
+<div class="table-wrap"><table class="records"><thead><tr><th>Ocorrência</th><th>Território</th><th>Prioridade de origem</th><th>Etapa</th><th>Prazo previsto</th><th>Última movimentação</th><th>Consulta</th></tr></thead>
 <tbody>{% set rotulos={'nova':'Recebida','pendente':'Em triagem','em_andamento':'Em atendimento','aguardando_validacao':'Em conferência','resolvida':'Concluída','cancelada':'Arquivada'} %}
 {% for d in dados.itens %}<tr><td><strong>{{ d.titulo }}</strong><br><small>ID: {{ d.cluster_id or d.id }}</small></td>
 <td>{{ d.area_nome or 'Não informado' }}</td><td><strong>{% if d.score_origem is not none %}{{ '%.2f'|format(d.score_origem) }} / 100{% else %}Não calculada{% endif %}</strong></td>
-<td>{{ rotulos.get(d.status,d.status) }}</td><td>{{ d.atualizado_em[:16] | replace('T',' ') }}</td>
+<td>{{ rotulos.get(d.status,d.status) }}</td><td>{% if d.prazo_vencido %}<span class="badge prazo-vencido">Prazo vencido</span>
+<small>{{ d.prazo_data }}</small>{% elif d.prazo_data %}{{ d.prazo_data }}{% else %}—{% endif %}</td>
+<td>{{ d.atualizado_data }}</td>
 <td><a href="{{ url_for('fj_operacional.tela_kanban',abrir=d.id) }}">Ver histórico</a></td></tr>
-{% else %}<tr><td colspan="6">Nenhum acompanhamento registrado. Os cartões recebidos estão no quadro de atendimento.</td></tr>{% endfor %}
+{% else %}<tr><td colspan="7">Nenhum acompanhamento registrado. Os cartões recebidos estão no quadro de atendimento.</td></tr>{% endfor %}
 </tbody></table></div><nav class="pagination" aria-label="Paginação da gestão">
 {% if dados.pagina > 1 %}<a href="{{ url_for('fj_operacional.tela_demandas',q=busca,status=situacao,page=dados.pagina-1) }}">Anterior</a>{% endif %}
 {% if dados.pagina < dados.paginas %}<a href="{{ url_for('fj_operacional.tela_demandas',q=busca,status=situacao,page=dados.pagina+1) }}">Próxima</a>{% endif %}

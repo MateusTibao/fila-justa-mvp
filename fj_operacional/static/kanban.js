@@ -56,6 +56,13 @@ function card(d) {
   n.appendChild(tornarTexto('p',d.area_nome || d.tipo || 'Sem distrito informado'));
   n.appendChild(tornarTexto('span',d.score_origem == null ? 'Pontuação de origem não disponível' :
     'Prioridade: ' + Number(d.score_origem).toFixed(2) + ' / 100', 'badge'));
+  if (d.prazo_data) {
+    n.appendChild(tornarTexto('span', d.prazo_vencido ? 'Prazo vencido' :
+      'Conclusão prevista: ' + d.prazo_data,
+      d.prazo_vencido ? 'badge prazo-vencido' : 'card-due'));
+    if (d.prazo_vencido) n.appendChild(tornarTexto('small',
+      'Data prevista: ' + d.prazo_data, 'card-due'));
+  }
   n.appendChild(tornarTexto('small',d.cluster_id ? 'ID: ' + d.cluster_id : 'Registro operacional', 'card-code'));
   n.addEventListener('click', () => abrir(d.id));
   n.addEventListener('keydown', e => {if(e.key==='Enter'||e.key===' '){e.preventDefault();abrir(d.id);}});
@@ -143,19 +150,24 @@ document.querySelectorAll('.column').forEach(coluna => {
   });
 });
 
-function prazoLocal(iso){
-  if(!iso)return '';
-  const d=new Date(iso);
-  const local=new Date(d.getTime()-d.getTimezoneOffset()*60000);
-  return local.toISOString().slice(0,16);
+function dataBr(iso){
+  if (!iso) return '';
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric'
+  }).format(new Date(iso));
 }
-function prazoIso(){
-  const v=campo('prazo_em');
-  return v ? new Date(v).toISOString() : null;
+function prazoFormulario(){
+  const valor=campo('prazo_em').trim();
+  if (!valor) return null;
+  const partes=valor.split('/');
+  const valido=partes.length===3 && [2,2,4].every((len,i)=>
+    partes[i].length===len && [...partes[i]].every(ch=>ch>='0' && ch<='9'));
+  if (!valido) throw new Error('Informe a data prevista no formato dd/mm/aaaa.');
+  return valor;
 }
 function dadosFormulario(){
   return {titulo:campo('titulo'),descricao:campo('descricao'),tipo:campo('tipo'),
-          area_nome:campo('area_nome'),prazo_em:prazoIso()};
+          area_nome:campo('area_nome'),prazo_em:prazoFormulario()};
 }
 function transicoesPermitidas(status){
   return (PROXIMAS[status] || []).filter(destino => gestor ||
@@ -167,7 +179,8 @@ function preencher(d){
   el('descricao').value=d?.descricao||'';
   el('tipo').value=d?.tipo||'';
   el('area_nome').value=d?.area_nome||'';
-  el('prazo_em').value=prazoLocal(d?.prazo_em);
+  el('prazo_em').value=d?.prazo_data || '';
+  el('prazo-situacao').textContent=d?.prazo_vencido ? 'Prazo vencido: a conclusão não foi registrada até a data prevista.' : '';
   el('justificativa').value='';
   el('dados-origem').textContent=d ?
     `Origem: ${d.origem} · ID: ${d.cluster_id||d.id} · Pontuação na entrada: ${d.score_origem == null ? 'não calculada' : Number(d.score_origem).toFixed(2) + ' / 100'} · Versão: ${d.versao}`:
@@ -180,12 +193,12 @@ function preencher(d){
   sel.disabled=sel.options.length===0;
   el('btn-transicao').disabled=!d||!sel.options.length;
   el('btn-transicao').hidden=!d;
-  el('btn-salvar').disabled=true;
+  el('btn-salvar').hidden=!gestor || !d || ['resolvida','cancelada'].includes(d.status);
+  el('btn-salvar').disabled=!gestor || !d || ['resolvida','cancelada'].includes(d.status);
   el('btn-salvar').textContent=d?'Salvar alterações':'Criar demanda';
   el('historico').replaceChildren();
-  for(const field of ['titulo','descricao','tipo','area_nome','prazo_em']){
-    el(field).disabled=true;
-  }
+  for(const field of ['titulo','descricao','tipo','area_nome']) el(field).disabled=true;
+  el('prazo_em').disabled=!gestor || !d || ['resolvida','cancelada'].includes(d.status);
 }
 async function abrir(id){
   try{
@@ -195,7 +208,7 @@ async function abrir(id){
     const h=await chamar(`${ROTAS.demandas}/${encodeURIComponent(id)}/historico`);
     el('historico').appendChild(tornarTexto('h3','Histórico de atividades'));
     for(const ev of h){
-      const data=new Date(ev.ocorrido_em).toLocaleString('pt-BR');
+      const data=ev.ocorrido_data || dataBr(ev.ocorrido_em);
       el('historico').appendChild(tornarTexto('p',
         `${data} · ${ev.autor_id} · ${ev.tipo_evento} · ${ev.status_anterior||'—'} → ${ev.status_novo}${ev.justificativa?' · '+ev.justificativa:''}`));
     }

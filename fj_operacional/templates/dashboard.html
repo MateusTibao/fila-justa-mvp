@@ -8,6 +8,7 @@
 <div class="metric-grid">
 <section><span>Registros acompanhados</span><strong>{{ metricas.total }}</strong><small>ocorrências com histórico operacional</small></section>
 <section><span>Em atendimento</span><strong>{{ metricas.por_status.em_andamento }}</strong><small>andamento registrado pela equipe</small></section>
+<section><span>Prazos vencidos</span><strong>{{ metricas.atrasadas }}</strong><small>registros abertos além da data prevista</small></section>
 <section><span>Conclusões validadas</span><strong>{{ metricas.por_status.resolvida }}</strong><small>encerramentos aprovados por gestor</small></section>
 <section><span>Atualizações nos últimos 7 dias</span><strong>{{ metricas.total_movimentos7d }}</strong><small>mudanças de situação auditadas</small></section>
 </div>

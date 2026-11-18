@@ -22,6 +22,9 @@
 <p class="card-location">{{ d.area_nome or 'Distrito não informado' }} · {{ d.n_relatos }} relato(s) agrupado(s)</p>
 <progress class="score-track" value="{{ d.score_pct }}" max="100" aria-label="Pontuação de priorização: {{ d.score_0_100 or 0 }} em 100">{{ d.score_pct }}%</progress>
 <div class="card-footer"><span>Faixa {{ d.faixa }}</span><span class="real-status">{% if d.acompanhamento == 'nao_iniciado' %}Sem atualização operacional{% else %}{{ nomes.get(d.acompanhamento,'Acompanhamento registrado') }}{% endif %}</span></div>
+{% if d.prazo_vencido %}
+<p class="badge deadline-expired">Prazo vencido · Previsão: {{ d.prazo_data }}</p>
+{% elif d.prazo_data %}<p class="card-due">Conclusão prevista: {{ d.prazo_data }}</p>{% endif %}
 <p class="card-id"><span>ID:</span> <code>{{ d.cluster_id }}</code></p>
 <div class="demo-control" hidden><label>Simular atualização deste cartão<select class="simular-estado"><option value="">Selecionar etapa</option><option>Recebida para triagem</option><option>Aguardando encaminhamento</option><option>Em atendimento</option><option>Em conferência</option><option>Atendimento concluído</option></select></label><p class="demo-resultado" aria-live="polite"></p></div>
 </article>

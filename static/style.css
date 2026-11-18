@@ -73,3 +73,8 @@ progress.bar-track.secondary-fill::-moz-progress-bar{background:#217f83}
 progress.bar-track.muted-fill{color:#879caf}
 progress.bar-track.muted-fill::-webkit-progress-value{background:#879caf}
 progress.bar-track.muted-fill::-moz-progress-bar{background:#879caf}
+
+/* Datas de conclusão sem hora e classificação por vencimento. */
+.badge.deadline-expired{background:#fce8e7;color:#9c2d29;font-weight:750;display:inline-block;align-self:flex-start;padding:6px 9px;font-size:12px;border-radius:5px}
+.deadline-alert{color:#9c2d29}
+.card-due{font-size:12px;color:#50677e;margin:5px 0}

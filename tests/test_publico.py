@@ -56,3 +56,17 @@ def test_catalogo_paginação_parametrizada_e_sem_escrita():
     assert "ID-25' OR 1=1 --" not in queries[0][0]
     assert queries[1][1][-2:] == [18,18]
     assert queries[0][1] == ["ID-25' OR 1=1 --"]
+
+def test_prazo_vencido_na_consulta_publica():
+    from datetime import datetime, timezone
+    from unittest.mock import patch
+    from fj_publico import aplicar_acompanhamento
+    raw=[{'cluster_id':'c-1','acompanhamento':'nao_iniciado',
+          'prazo_data':None,'prazo_vencido':False}]
+    configurado={'c-1':{'status':'em_andamento',
+                       'prazo':datetime(2020,11,18,2,59,59,tzinfo=timezone.utc)}}
+    with patch('fj_publico._obter_acompanhamento',return_value=configurado):
+        itens=aplicar_acompanhamento(raw,engine=object())
+    assert itens[0]['prazo_data'] == '17/11/2020'
+    assert itens[0]['prazo_vencido'] is True
+    assert itens[0]['acompanhamento'] == 'em_andamento'

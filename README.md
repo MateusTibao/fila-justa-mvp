@@ -43,6 +43,8 @@ A consulta lê a **prioridade corrente** diretamente da Gold, sem gerar uma dema
 - Gráficos públicos mostram a **fotografia atual** da Gold, e não uma série de evolução histórica. O gráfico diário de movimentações do painel de gestão é construído dos eventos realmente gravados.
 - Status de atendimento e pontuação de prioridade são informações independentes; nunca deduzir atendimento concluído a partir do score.
 
+**Datas operacionais:** a previsão de conclusão é informada e exibida em **dd/mm/aaaa**, sem horário. O dia inteiro é considerado, no fuso `America/Sao_Paulo`: se o prazo previsto é 17/11, o cartão só recebe a marcação **Prazo vencido** a partir de 18/11, desde que continue aberto. Ocorrências concluídas/arquivadas não são marcadas como vencidas. Os carimbos de movimentação aparecem somente com a data na interface; os horários completos continuam preservados na auditoria.
+
 [Contrato técnico da fila e da demonstração](docs/FLUXO_PUBLICO.md).
 
 ## Saúde e disponibilidade

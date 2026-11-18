@@ -1,5 +1,6 @@
 """Consulta pública paginada da fila analítica; nenhuma escrita na Gold."""
 from collections import Counter
+from datetime import timezone
 from decimal import Decimal
 from math import ceil
 
@@ -33,6 +34,8 @@ def normalizar_item(row, acompanhamento=None):
     obj["faixa"] = faixa_pontuacao(score)
     obj["n_relatos"] = int(obj.get("n_relatos") or 0)
     obj["acompanhamento"] = acompanhamento or "nao_iniciado"
+    obj["prazo_data"] = None
+    obj["prazo_vencido"] = False
     # Não compartilhar autores, usuários, observações internas ou dados pessoais.
     obj["explicacao"] = str(obj.get("explicacao") or "")[:500]
     return obj
@@ -67,9 +70,11 @@ def _obter_acompanhamento(engine, ids):
     from sqlalchemy import select
     from fj_operacional.models import demandas
     with engine.connect() as conn:
-        rows = conn.execute(select(demandas.c.cluster_id, demandas.c.status)
+        rows = conn.execute(select(demandas.c.cluster_id, demandas.c.status,
+                                   demandas.c.prazo_em)
                             .where(demandas.c.cluster_id.in_(ids))).all()
-    return {str(cluster): status for cluster,status in rows}
+    return {str(cluster): {"status": status, "prazo": prazo}
+            for cluster, status, prazo in rows}
 
 
 def aplicar_acompanhamento(itens, engine=None, log=None):
@@ -80,8 +85,19 @@ def aplicar_acompanhamento(itens, engine=None, log=None):
         if log:
             log.warning("Acompanhamento operacional indisponível na consulta pública")
         estados = {}
+    from fj_operacional.domain import data_prazo, prazo_atrasado
     for item in itens:
-        item["acompanhamento"] = estados.get(item["cluster_id"], "nao_iniciado")
+        registro = estados.get(item["cluster_id"])
+        if not registro:
+            item["acompanhamento"] = "nao_iniciado"
+            continue
+        item["acompanhamento"] = registro["status"]
+        prazo = registro["prazo"]
+        if prazo is not None:
+            if prazo.tzinfo is None:
+                prazo = prazo.replace(tzinfo=timezone.utc)
+            item["prazo_data"] = data_prazo(prazo).strftime("%d/%m/%Y")
+            item["prazo_vencido"] = prazo_atrasado(registro["status"], prazo)
     return itens
 
 

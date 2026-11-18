@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from .domain import (
     STATUS, RegraNegocioError, ConflitoVersaoError, NaoEncontradoError,
     SemPermissaoError, validar_perfil, validar_transicao,
-    situacao_prazo, normalizar_prazo,
+    situacao_prazo, normalizar_prazo, data_prazo, prazo_atrasado, FUSO_OPERACIONAL,
 )
 from .models import demandas, historico
 
@@ -44,6 +44,13 @@ def _json(row):
     if "status" in obj:
         prazo = normalizar_prazo(obj.get("prazo_em"))
         obj["situacao_prazo"] = situacao_prazo(obj["status"], prazo)
+        obj["prazo_data"] = data_prazo(prazo).strftime("%d/%m/%Y") if prazo else None
+        obj["prazo_vencido"] = prazo_atrasado(obj["status"], prazo)
+    for campo in ("criado_em", "atualizado_em", "ocorrido_em"):
+        valor = obj.get(campo)
+        if isinstance(valor, str):
+            obj[campo.replace("_em", "_data")] = datetime.fromisoformat(valor).astimezone(
+                FUSO_OPERACIONAL).strftime("%d/%m/%Y")
     return obj
 
 
@@ -265,9 +272,12 @@ class DemandasRepository:
         with self.engine.connect() as conn:
             linhas = conn.execute(select(demandas.c.status, func.count().label('total'))
                                   .group_by(demandas.c.status)).all()
-            atrasadas = conn.execute(select(func.count()).select_from(demandas).where(
-                demandas.c.status.in_(STATUS[:4]), demandas.c.prazo_em < agora
-            )).scalar_one()
+            prazos_ativos = conn.execute(select(demandas.c.status, demandas.c.prazo_em)
+                .where(demandas.c.status.in_(STATUS[:4]),
+                       demandas.c.prazo_em.is_not(None))).all()
+            atrasadas = sum(1 for estado, prazo in prazos_ativos
+                if prazo_atrasado(estado, prazo.replace(tzinfo=timezone.utc)
+                                 if prazo.tzinfo is None else prazo, agora=agora))
             grupos = conn.execute(select(demandas.c.tipo, func.count().label('total'))
                        .group_by(demandas.c.tipo).order_by(func.count().desc()).limit(6)).all()
             territ = conn.execute(select(demandas.c.area_nome, func.count().label('total'))

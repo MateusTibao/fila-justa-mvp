@@ -87,3 +87,20 @@ def test_dashboard_graficos_compativeis_com_csp(contexto):
     html = resposta.get_data(as_text=True)
     assert '<progress' in html
     assert 'style="' not in html
+
+def test_prazo_em_formato_br_e_alerta_no_kanban(contexto):
+    client, estado = contexto
+    estado['usuario']={'id':'gestor','perfil':'gestor'}
+    criado=client.post('/api/gestao/demandas',
+        json={'titulo':'Reparo em calçada', 'prazo_em':'17/11/2020'},
+        headers={'X-CSRFToken':'token-valido'})
+    assert criado.status_code == 201
+    assert criado.json['prazo_data'] == '17/11/2020'
+    assert criado.json['prazo_vencido'] is True
+    assert client.get('/api/gestao/kanban').json['nova']['itens'][0]['prazo_vencido'] is True
+    lista=client.get('/gestao/demandas')
+    assert '17/11/2020' in lista.get_data(as_text=True)
+    assert 'Prazo vencido' in lista.get_data(as_text=True)
+    quadro=client.get('/gestao/kanban')
+    assert 'placeholder="dd/mm/aaaa"' in quadro.get_data(as_text=True)
+    assert 'datetime-local' not in quadro.get_data(as_text=True)

@@ -87,3 +87,19 @@ Verificar também por HTTP:
 - `/health` (processo) e `/ready` (PostgreSQL) continuam com contratos anteriores.
 
 Projeto acadêmico demonstrativo: não apresentar como sistema municipal implantado.
+
+## Formato de datas e avisos de conclusão
+
+- Data prevista de conclusão: campo **dd/mm/aaaa**, sem relógio no navegador.
+- Os registros de `prazo_em` continuam em `TIMESTAMPTZ` por compatibilidade;
+  uma data civil informada é armazenada no fim do dia, no fuso `America/Sao_Paulo`.
+- A verificação é por dia civil local, **não pelo instante UTC**: prazo
+  de 17/11/2026 só é considerado vencido a partir de 18/11/2026.
+- Na interface o aviso é **Prazo vencido**, e apenas para acompanhamentos
+  ainda abertos (recebido, triagem, em atendimento ou conferência).
+- Para registros sem previsão não é mostrado aviso de prazo. A prioridade
+  da Gold não é alterada pela data de conclusão.
+- Datas de atualização e movimentação são exibidas em `dd/mm/aaaa`,
+  mas os carimbos completos de auditoria são preservados no banco.
+- A consulta pública pode exibir a previsão e o vencimento já registrados
+  em gestão; a simulação nunca modifica essa informação.

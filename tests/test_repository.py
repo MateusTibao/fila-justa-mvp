@@ -173,3 +173,22 @@ def test_metricas_incluem_transicoes_reais(setup):
     assert m['total_movimentos7d'] >= 1
     assert sum(x['total'] for x in m['movimentos7d']) == m['total_movimentos7d']
     assert m['tipos'][0]['total'] == 1
+
+def test_repositorio_prazo_vencido_e_data_local(setup):
+    repo, _ = setup
+    d = repo.criar_manual(ator='gestor',perfil='gestor',
+             titulo='Reparo com data prevista',prazo_em='17/11/2020')
+    assert d['prazo_data'] == '17/11/2020'
+    assert d['prazo_vencido'] is True
+    assert repo.metricas()['atrasadas'] >= 1
+    assert repo.listar(busca='Reparo')['itens'][0]['prazo_data'] == '17/11/2020'
+    d=repo.mudar_status(demanda_id=d['id'],destino='pendente',versao=d['versao'],
+                        ator='gestor',perfil='gestor')
+    assert d['prazo_vencido']
+    d=repo.mudar_status(demanda_id=d['id'],destino='em_andamento',versao=d['versao'],
+                        ator='operador',perfil='operador')
+    d=repo.mudar_status(demanda_id=d['id'],destino='aguardando_validacao',versao=d['versao'],
+                        ator='operador',perfil='operador')
+    d=repo.mudar_status(demanda_id=d['id'],destino='resolvida',versao=d['versao'],
+                        ator='gestor',perfil='gestor',justificativa='Reparo conferido')
+    assert d['prazo_vencido'] is False

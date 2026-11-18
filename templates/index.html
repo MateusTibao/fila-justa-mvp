@@ -56,7 +56,7 @@
 <h3><a href="{{ url_for('detalhe_ocorrencia',cluster_id=d.cluster_id) }}">{{ d.titulo }}</a></h3>
 <p class="card-location">{{ d.area_nome or 'Distrito não informado' }} · {{ d.n_relatos }} relato(s) agrupado(s)</p>
 <progress class="score-track" value="{{ d.score_pct }}" max="100" aria-label="Pontuação de priorização: {{ d.score_0_100 or 0 }} em 100">{{ d.score_pct }}%</progress>
-<div class="card-footer"><span>{{ d.faixa }}</span><span>{% if d.acompanhamento == 'nao_iniciado' %}Sem registro operacional{% else %}Acompanhamento registrado{% endif %}</span></div></article>
+<div class="card-footer"><span>{{ d.faixa }}</span><span>{% if d.acompanhamento == 'nao_iniciado' %}Sem registro operacional{% else %}Acompanhamento registrado{% endif %}</span></div>{% if d.prazo_vencido %}<span class="badge deadline-expired">Prazo vencido · {{ d.prazo_data }}</span>{% elif d.prazo_data %}<span class="card-due">Conclusão prevista: {{ d.prazo_data }}</span>{% endif %}</article>
 {% else %}<p>Nenhuma ocorrência disponível na fotografia consultada.</p>{% endfor %}</div>
 </section>
 {% endif %}
