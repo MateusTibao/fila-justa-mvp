@@ -43,6 +43,14 @@ A importação de um `cluster_id` Gold é idempotente: atualizar o pipeline não
 
 O motivo da pendência, os testes realizados, os riscos, as medidas compensatórias e os critérios para corrigi-la estão registrados em [Etapa 8 — Auditoria e pendência de rede](docs/ETAPA_8_SEGURANCA.md).
 
+## Documentação da entrega Cloud (Etapa 12)
+
+- [Arquitetura Cloud e evidências de validação](docs/ETAPA_12_ARQUITETURA_CLOUD.md)
+- [Etapa 8 — Segurança: EM CONFIRMAÇÃO do professor](docs/ETAPA_8_SEGURANCA.md)
+- [CI/CD e autenticação OIDC](docs/CI_CD.md)
+
+A documentação da Etapa 12 consolida o pipeline Bronze/Silver/Gold validado no ambiente de engenharia, o snapshot Gold e o schema operacional na Azure, o fluxo de implantação e as pendências das etapas 8, 10, 11 e 13. O processamento Airflow **não foi declarado implantado continuamente na Azure**.
+
 ## Configurar localmente (antes de Azure)
 
 Python 3.12 recomendado. Em Git Bash no Windows:
