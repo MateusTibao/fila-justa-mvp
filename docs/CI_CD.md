@@ -12,7 +12,7 @@ As versões `actions/checkout@v7` e `actions/setup-python@v7` estão publicadas 
 
 Em `MateusTibao/fila-justa-mvp`, o CI da branch `main` passou em 18/11/2026 (run `44227832059`): inicialização do runner, dependências, compilação e pytest concluídos com sucesso. O bloqueio antigo era da conta anterior e não se aplica a essa execução.
 
-A partir desta revisão, o CI roda também em pull requests destinados à `main`. O deploy Azure permanece **exclusivamente manual**. CI verde não comprova que OIDC ou deploy Azure tenham sido configurados/testados.
+A partir desta revisão, o CI roda também em pull requests destinados à `main`. O deploy Azure permanece **exclusivamente manual**. **Situação posterior confirmada:** OIDC e deploy Azure foram testados com sucesso na execução [#44240763220](https://github.com/MateusTibao/fila-justa-mvp/actions/runs/44240763220), em 18/11/2026.
 
 ## CI automático
 
@@ -29,9 +29,9 @@ Se o primeiro job falhar **sem chegar ao primeiro passo**, abrir:
 
 Se o diagnóstico passar e `testes` falhar, analisar o passo vermelho (instalação, compilação ou `pytest`).
 
-## CD Azure — desativado por padrão
+## CD Azure — execução manual, sem deploy automático
 
-O `deploy-azure.yml` permite **somente execução manual** na `main`. Fazer commits não publica nada automaticamente no Azure. O ambiente `production` pode exigir aprovação.
+O `deploy-azure.yml` permite **somente execução manual** na `main`. Fazer commits não publica nada automaticamente no Azure. O ambiente `production` pode exigir aprovação. O campo `acao` aceita `validar-oidc` (padrão, **não publica**) e `publicar` (publicação explícita).
 
 Antes do deploy, o próprio CD instala as dependências e passa os testes. Em seguida, usa login Azure via OpenID Connect, sem publish profile, publica com `azure/webapps-deploy@v3` e verifica `/health` (processo) e `/ready` (PostgreSQL).
 
@@ -40,7 +40,7 @@ Antes do deploy, o próprio CD instala as dependências e passa os testes. Em se
 1. Em **Settings → Environments**, criar ambiente `production`, de preferência com aprovação obrigatória.
 2. Em **Settings → Secrets and variables → Actions → Variables**, criar `AZURE_WEBAPP_NAME` com o nome **real** do App Service. Não é necessário configurar `FJ_AUTO_DEPLOY`: o workflow não possui gatilho de push.
 3. Em **Secrets** do repositório ou ambiente `production`, criar `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` e `AZURE_SUBSCRIPTION_ID`. Não publicar valores no código.
-4. No Microsoft Entra/Azure, criar credencial OIDC federada para a identidade de deploy com `issuer=https://token.actions.githubusercontent.com`, `audience=api://AzureADTokenExchange` e **subject** `repo:MateusTibao/fila-justa-mvp:environment:production`; conceder acesso mínimo ao App Service.
+4. No Microsoft Entra/Azure, criar credencial OIDC federada para a identidade de deploy com `issuer=https://token.actions.githubusercontent.com`, `audience=api://AzureADTokenExchange` e **subject validado** `repo:MateusTibao@143664123/fila-justa-mvp@1462232867:environment:production`; conceder acesso mínimo ao App Service.
 5. No Azure App Service, confirmar runtime Python, comando de inicialização Flask e `SCM_DO_BUILD_DURING_DEPLOYMENT=true` se o deploy publicar código-fonte.
 
 ### Atenção aos dois bancos
@@ -55,8 +55,8 @@ Na implantação atual, a regra especial `0.0.0.0` do firewall PostgreSQL permit
 
 1. Validar CI verde e o app no PostgreSQL de testes.
 2. Configurar ambiente, variáveis, secrets e identidade OIDC.
-3. Executar manualmente **Actions → CD - Azure App Service → Run workflow** na `main`.
-4. Confirmar deploy e resposta HTTP 200 em `/health`.
+3. Executar manualmente **Actions → CD - Azure App Service → Run workflow** na `main`, primeiro em `validar-oidc` e só depois em `publicar`.
+4. Confirmar deploy e resposta HTTP 200 em `/health` e `/ready`, além do login e do fluxo operacional.
 5. Para habilitar deploy automático no futuro, definir e validar um gatilho de push em um commit separado, após aprovação explícita.
 
 ## Referências
