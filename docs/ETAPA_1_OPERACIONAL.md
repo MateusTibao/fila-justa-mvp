@@ -1,4 +1,4 @@
-# Fila Justa 2.0 — Etapa 1 (implementação incremental)
+# Fila Justa — Etapa 1 (implementação incremental)
 
 ## Auditoria em 17/11/2026
 
