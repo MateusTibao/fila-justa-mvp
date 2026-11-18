@@ -2,6 +2,15 @@ name: CD - Azure App Service
 
 on:
   workflow_dispatch:
+    inputs:
+      acao:
+        description: "Validar OIDC sem deploy ou publicar no App Service"
+        type: choice
+        required: true
+        default: validar-oidc
+        options:
+          - validar-oidc
+          - publicar
 
 permissions:
   contents: read
@@ -39,7 +48,7 @@ jobs:
           python -m pytest -q
 
   publicar:
-    name: Publicar no Azure (OIDC)
+    name: Conectar ao Azure (OIDC) e publicar se solicitado
     needs: testes-pre-deploy
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -65,8 +74,8 @@ jobs:
               exit 1
             fi
           done
-          if [[ ! "$APP_NAME" =~ ^[a-zA-Z0-9-]+$ ]]; then
-            echo "::error::AZURE_WEBAPP_NAME invalido"
+          if [[ "$APP_NAME" != "app-fila-justa-4b9b51" ]]; then
+            echo "::error::AZURE_WEBAPP_NAME diferente do App Service autorizado"
             exit 1
           fi
 
@@ -82,13 +91,28 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Validar OIDC e permissao de leitura no App Service
+        shell: bash
+        env:
+          APP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+        run: |
+          set -euo pipefail
+          az webapp show --resource-group rg-fila-justa --name "$APP_NAME" \
+            --query "{Aplicacao:name,Estado:state,HTTPS:httpsOnly}" --output table
+          echo "OIDC VALIDADO: autenticacao e acesso ao App Service OK"
+          if [[ "${{ inputs.acao }}" == "validar-oidc" ]]; then
+            echo "MODO SEGURO: nenhum deploy foi realizado"
+          fi
+
       - name: Publicar Flask no Azure App Service
+        if: ${{ inputs.acao == 'publicar' }}
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ vars.AZURE_WEBAPP_NAME }}
           package: .
 
       - name: Verificar processo e conexao com o PostgreSQL
+        if: ${{ inputs.acao == 'publicar' }}
         shell: bash
         env:
           APP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
