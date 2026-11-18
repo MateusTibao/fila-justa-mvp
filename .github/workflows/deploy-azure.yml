@@ -2,8 +2,6 @@ name: CD - Azure App Service
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 permissions:
   contents: read
@@ -15,9 +13,7 @@ concurrency:
 jobs:
   testes-pre-deploy:
     name: Validar codigo antes da publicacao
-    # Desativado em push por padrao. Ativar apenas quando a variavel
-    # de repositorio FJ_AUTO_DEPLOY for explicitamente 'true'.
-    if: ${{ github.event_name == 'workflow_dispatch' || vars.FJ_AUTO_DEPLOY == 'true' }}
+    # Execucao manual: nenhum commit publica no Azure automaticamente.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
