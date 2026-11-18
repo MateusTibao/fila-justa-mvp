@@ -39,7 +39,7 @@ A importação de um `cluster_id` Gold é idempotente: atualizar o pipeline não
 
 ## Segurança da implantação Azure (Etapa 8)
 
-A auditoria de segurança foi **concluída com ressalva**: HTTPS/TLS, RBAC, FTP/FTPS desativado e papéis mínimos do PostgreSQL foram validados. A implantação F1 ainda depende da exceção de firewall `fj-f1-azure-acesso` (`0.0.0.0`, autorização para serviços Azure) para acessar o PostgreSQL. Isso **não é isolamento privado de rede** e não deve ser apresentado como configuração definitiva para produção.
+**Status: EM CONFIRMAÇÃO, aguardando retorno do professor.** Os controles foram auditados: HTTPS/TLS, RBAC, FTP/FTPS desativado e papéis mínimos do PostgreSQL foram validados. A implantação F1 ainda depende da exceção de firewall `fj-f1-azure-acesso` (`0.0.0.0`, autorização para serviços Azure) para acessar o PostgreSQL. Isso **não é isolamento privado de rede** e não deve ser apresentado como configuração definitiva para produção. A continuidade acadêmica com essa limitação foi submetida ao professor, **sem resposta registrada até o momento**.
 
 O motivo da pendência, os testes realizados, os riscos, as medidas compensatórias e os critérios para corrigi-la estão registrados em [Etapa 8 — Auditoria e pendência de rede](docs/ETAPA_8_SEGURANCA.md).
 
