@@ -29,6 +29,14 @@ A parte pública permanece acessível em `/`. A gestão operacional é habilitad
 
 A importação de um `cluster_id` Gold é idempotente: atualizar o pipeline não altera a situação operacional já registrada. O módulo GenAI está em repositório separado e **não foi acoplado** a esta alteração.
 
+## Saúde e disponibilidade
+
+- `GET /health`: retorna HTTP 200 quando o processo Flask está atendendo requisições, sem consultar o PostgreSQL.
+- `GET /ready`: retorna HTTP 200 se a consulta de conectividade ao PostgreSQL funcionar; caso contrário, HTTP 503.
+- O teste de disponibilidade do Application Insights utiliza `/ready`, não `/health`.
+- A publicação Azure permanece **manual** e separada do CI; nenhum push atualiza automaticamente o site.
+- As funcionalidades de gestão exigem `OPERATIONAL_DATABASE_URL` com permissões mínimas de escrita no schema `operacional`; o usuário `app_reader` continua somente leitura.
+
 ## Configurar localmente (antes de Azure)
 
 Python 3.12 recomendado. Em Git Bash no Windows:

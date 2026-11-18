@@ -106,9 +106,16 @@ def index():
 
 @app.get('/health')
 def health():
+    # Liveness: nao depende da rede nem da disponibilidade do PostgreSQL.
+    return jsonify(status='healthy'), 200
+
+
+@app.get('/ready')
+def ready():
+    # Readiness: usado pelo Application Insights para validar a conexao ao banco.
     try:
         if check_database():
-            return jsonify(status='healthy'), 200
+            return jsonify(status='ready'), 200
     except (psycopg.Error, RuntimeError):
         pass
     return jsonify(status='degraded'), 503

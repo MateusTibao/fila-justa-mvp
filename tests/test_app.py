@@ -8,16 +8,31 @@ def client():
     return app.test_client()
 
 
-def test_health_healthy(client):
-    with patch('app.check_database', return_value=True):
+def test_health_independent_of_database(client):
+    with patch('app.check_database', side_effect=RuntimeError('Sem banco')) as db_check:
         response = client.get('/health')
     assert response.status_code == 200
     assert response.json == {'status': 'healthy'}
+    db_check.assert_not_called()
 
 
-def test_health_degraded(client):
+def test_ready_healthy(client):
+    with patch('app.check_database', return_value=True):
+        response = client.get('/ready')
+    assert response.status_code == 200
+    assert response.json == {'status': 'ready'}
+
+
+def test_ready_degraded(client):
     with patch('app.check_database', return_value=False):
-        response = client.get('/health')
+        response = client.get('/ready')
+    assert response.status_code == 503
+    assert response.json == {'status': 'degraded'}
+
+
+def test_ready_handles_database_exception(client):
+    with patch('app.check_database', side_effect=RuntimeError('Sem conexao')):
+        response = client.get('/ready')
     assert response.status_code == 503
     assert response.json == {'status': 'degraded'}
 
