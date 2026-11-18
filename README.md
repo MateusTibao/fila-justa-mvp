@@ -37,6 +37,12 @@ A importação de um `cluster_id` Gold é idempotente: atualizar o pipeline não
 - A publicação Azure permanece **manual** e separada do CI; nenhum push atualiza automaticamente o site.
 - As funcionalidades de gestão exigem `OPERATIONAL_DATABASE_URL` com permissões mínimas de escrita no schema `operacional`; o usuário `app_reader` continua somente leitura.
 
+## Segurança da implantação Azure (Etapa 8)
+
+A auditoria de segurança foi **concluída com ressalva**: HTTPS/TLS, RBAC, FTP/FTPS desativado e papéis mínimos do PostgreSQL foram validados. A implantação F1 ainda depende da exceção de firewall `fj-f1-azure-acesso` (`0.0.0.0`, autorização para serviços Azure) para acessar o PostgreSQL. Isso **não é isolamento privado de rede** e não deve ser apresentado como configuração definitiva para produção.
+
+O motivo da pendência, os testes realizados, os riscos, as medidas compensatórias e os critérios para corrigi-la estão registrados em [Etapa 8 — Auditoria e pendência de rede](docs/ETAPA_8_SEGURANCA.md).
+
 ## Configurar localmente (antes de Azure)
 
 Python 3.12 recomendado. Em Git Bash no Windows:
