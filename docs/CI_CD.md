@@ -8,11 +8,17 @@ Execuções anteriores, incluindo as verificações dos PRs #1 e #2, retornaram 
 
 As versões `actions/checkout@v7` e `actions/setup-python@v7` estão publicadas e não explicam sozinhas a falha.
 
+## Estado verificado no novo repositório
+
+Em `MateusTibao/fila-justa-mvp`, o CI da branch `main` passou em 18/11/2026 (run `44227832059`): inicialização do runner, dependências, compilação e pytest concluídos com sucesso. O bloqueio antigo era da conta anterior e não se aplica a essa execução.
+
+A partir desta revisão, o CI roda também em pull requests destinados à `main`. O deploy Azure permanece **exclusivamente manual**. CI verde não comprova que OIDC ou deploy Azure tenham sido configurados/testados.
+
 ## CI automático
 
 O workflow `ci.yml` inicia com um job mínimo (`diagnostico-runner`), sem checkout, dependências ou segredos. Em seguida, o job `testes` instala `requirements-dev.txt`, verifica dependências, compila Python e executa todos os testes `pytest`.
 
-Disparos: push em `main` e execução manual no GitHub Actions. Não exigimos Pull Requests.
+Disparos: push em `main`, pull request para `main` e execução manual no GitHub Actions.
 
 Se o primeiro job falhar **sem chegar ao primeiro passo**, abrir:
 - **Actions → CI - Fila Justa → execução recente**: conferir mensagem no cabeçalho.
@@ -27,7 +33,7 @@ Se o diagnóstico passar e `testes` falhar, analisar o passo vermelho (instalaç
 
 O `deploy-azure.yml` permite **somente execução manual** na `main`. Fazer commits não publica nada automaticamente no Azure. O ambiente `production` pode exigir aprovação.
 
-Antes do deploy, o próprio CD instala as dependências e passa os testes. Em seguida, usa login Azure via OpenID Connect, sem publish profile, publica com `azure/webapps-deploy@v3` e verifica a rota `/health`.
+Antes do deploy, o próprio CD instala as dependências e passa os testes. Em seguida, usa login Azure via OpenID Connect, sem publish profile, publica com `azure/webapps-deploy@v3` e verifica `/health` (processo) e `/ready` (PostgreSQL).
 
 ### Configurações necessárias
 
@@ -41,7 +47,9 @@ Antes do deploy, o próprio CD instala as dependências e passa os testes. Em se
 
 O workflow **não executa migrações** nem modifica o PostgreSQL. O app público consulta `gold` com o usuário somente leitura. A gestão operacional precisa de conexão separada e schema `operacional` já migrado e testado.
 
-O `/health` atual consulta o banco; se a rede Azure → PostgreSQL continuar falhando, o pós-deploy responderá 503 mesmo após um upload bem-sucedido. Tratar saúde e disponibilidade do banco separadamente da autenticação do deploy.
+As rotas têm responsabilidades separadas: `/health` responde 200 quando o processo Flask está ativo; `/ready` verifica PostgreSQL e responde 503 se a conexão falhar. O monitor de disponibilidade do Azure já consulta `/ready`. O deploy manual deve falhar no smoke test de `/ready` se o site não conseguir acessar o banco; isso **não significa** que o código publicado tenha sido revertido automaticamente.
+
+Na implantação atual, a regra especial `0.0.0.0` do firewall PostgreSQL permite conexões oriundas de serviços Azure de outras assinaturas; é uma **exceção de segurança**, não rede privada. Restringir por identidade, TLS e privilégios mínimos, monitorar e registrar a pendência na entrega. **Não incluir senhas ou strings de conexão completas no Git.**
 
 ### Ativação
 
