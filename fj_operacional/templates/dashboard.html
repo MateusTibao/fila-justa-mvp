@@ -16,20 +16,20 @@
 <p class="note">Número de transições registradas por dia. Dias sem movimentação são apresentados com valor zero.</p>
 <div class="activity-chart" role="img" aria-label="Movimentações diárias nos últimos sete dias">
 {% for d in metricas.movimentos7d %}
-<div class="activity-column"><span class="activity-number">{{ d.total }}</span><div class="activity-track"><div class="activity-fill" style="height:{{ (d.total / metricas.total_movimentos7d * 100)|round(1) if metricas.total_movimentos7d else 0 }}%"></div></div><span class="activity-day">{{ d.dia }}</span></div>
+<div class="activity-column"><span class="activity-number">{{ d.total }}</span><div class="activity-track"><progress class="activity-meter" max="100" value="{{ (d.total / metricas.total_movimentos7d * 100)|round(1) if metricas.total_movimentos7d else 0 }}">{{ d.total }}</progress></div><span class="activity-day">{{ d.dia }}</span></div>
 {% endfor %}</div>
 </section>
 <section class="analytics-panel"><p class="eyebrow">FLUXO DE ATENDIMENTO</p><h2>Registros por etapa</h2>
 {% set rotulos={'nova':'Recebida','pendente':'Em triagem','em_andamento':'Em atendimento','aguardando_validacao':'Em conferência','resolvida':'Concluída','cancelada':'Arquivada'} %}
 {% for k, v in metricas.por_status.items() %}
-<div class="admin-bar-row"><div><span>{{ rotulos.get(k,k) }}</span><strong>{{ v }}</strong></div><div class="admin-bar-track"><span style="width:{{ (v / metricas.total * 100)|round(1) if metricas.total else 0 }}%"></span></div></div>
+<div class="admin-bar-row"><div><span>{{ rotulos.get(k,k) }}</span><strong>{{ v }}</strong></div><progress class="admin-bar-track" max="100" value="{{ (v / metricas.total * 100)|round(1) if metricas.total else 0 }}">{{ v }}</progress></div>
 {% endfor %}
 </section>
 <section class="analytics-panel"><p class="eyebrow">TIPOLOGIA</p><h2>Principais categorias acompanhadas</h2>
-{% for t in metricas.tipos %}<div class="admin-bar-row"><div><span>{{ t.nome }}</span><strong>{{ t.total }}</strong></div><div class="admin-bar-track"><span style="width:{{ t.pct }}%"></span></div></div>{% else %}<p class="note">Aguardando registros de atendimento.</p>{% endfor %}
+{% for t in metricas.tipos %}<div class="admin-bar-row"><div><span>{{ t.nome }}</span><strong>{{ t.total }}</strong></div><progress class="admin-bar-track" max="100" value="{{ t.pct }}">{{ t.total }}</progress></div>{% else %}<p class="note">Aguardando registros de atendimento.</p>{% endfor %}
 </section>
 <section class="analytics-panel"><p class="eyebrow">TERRITÓRIOS</p><h2>Distribuição dos acompanhamentos</h2>
-{% for t in metricas.distritos %}<div class="admin-bar-row"><div><span>{{ t.nome }}</span><strong>{{ t.total }}</strong></div><div class="admin-bar-track"><span style="width:{{ t.pct }}%"></span></div></div>{% else %}<p class="note">Aguardando registros de atendimento.</p>{% endfor %}
+{% for t in metricas.distritos %}<div class="admin-bar-row"><div><span>{{ t.nome }}</span><strong>{{ t.total }}</strong></div><progress class="admin-bar-track" max="100" value="{{ t.pct }}">{{ t.total }}</progress></div>{% else %}<p class="note">Aguardando registros de atendimento.</p>{% endfor %}
 </section>
 </div>
 <div class="info-strip"><strong>Sobre a priorização:</strong> o score dos cartões é gerado na fila Gold a partir de dados analíticos. As etapas de atendimento são atualizadas nesta gestão e auditadas separadamente. <a href="/">Consultar indicadores gerais da Gold</a>.</div>

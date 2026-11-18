@@ -78,3 +78,12 @@ def test_entrada_da_gold_so_leitura_e_acompanhamento_autorizado(contexto):
     assert iniciado.json['status'] == 'pendente'
     assert client.get('/api/gestao/entrada').json['itens'] == []
     assert client.get('/api/gestao/demandas').json['total'] == 1
+
+def test_dashboard_graficos_compativeis_com_csp(contexto):
+    client, estado = contexto
+    estado['usuario']={'id':'gestor','perfil':'gestor'}
+    resposta = client.get('/gestao/dashboard')
+    assert resposta.status_code == 200
+    html = resposta.get_data(as_text=True)
+    assert '<progress' in html
+    assert 'style="' not in html

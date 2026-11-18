@@ -20,7 +20,7 @@
 <div class="card-top"><span class="rank">#{{ d.rank }}</span><span class="score-tag">{{ '%.2f'|format(d.score_0_100 or 0) }} / 100</span></div>
 <h2><a href="{{ url_for('detalhe_ocorrencia',cluster_id=d.cluster_id) }}">{{ d.titulo }}</a></h2>
 <p class="card-location">{{ d.area_nome or 'Distrito não informado' }} · {{ d.n_relatos }} relato(s) agrupado(s)</p>
-<div class="score-track" aria-label="Pontuação de priorização {{ d.score_0_100 or 0 }} de 100"><div style="width:{{ d.score_pct }}%"></div></div>
+<progress class="score-track" value="{{ d.score_pct }}" max="100" aria-label="Pontuação de priorização: {{ d.score_0_100 or 0 }} em 100">{{ d.score_pct }}%</progress>
 <div class="card-footer"><span>Faixa {{ d.faixa }}</span><span class="real-status">{% if d.acompanhamento == 'nao_iniciado' %}Sem atualização operacional{% else %}{{ nomes.get(d.acompanhamento,'Acompanhamento registrado') }}{% endif %}</span></div>
 <p class="card-id"><span>ID:</span> <code>{{ d.cluster_id }}</code></p>
 <div class="demo-control" hidden><label>Simular atualização deste cartão<select class="simular-estado"><option value="">Selecionar etapa</option><option>Recebida para triagem</option><option>Aguardando encaminhamento</option><option>Em atendimento</option><option>Em conferência</option><option>Atendimento concluído</option></select></label><p class="demo-resultado" aria-live="polite"></p></div>

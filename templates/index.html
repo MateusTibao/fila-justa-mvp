@@ -35,18 +35,18 @@
 <div class="analytics-grid">
 <section class="chart-card" aria-labelledby="tipos-title"><div class="chart-heading"><span class="eyebrow">COMPOSIÇÃO DA FILA</span><h3 id="tipos-title">Ocorrências por categoria</h3><p>Principais tipos identificados na base</p></div>
 {% for item in resumo.tipos %}
-<div class="bar-row"><div class="bar-label"><span>{{ item.nome }}</span><strong>{{ item.total }}</strong></div><div class="bar-track"><div class="bar-fill" style="width:{{ item.percentual }}%"></div></div></div>
+<div class="bar-row"><div class="bar-label"><span>{{ item.nome }}</span><strong>{{ item.total }}</strong></div><progress class="bar-track" value="{{ item.percentual }}" max="100">{{ item.percentual }}%</progress></div>
 {% else %}<p>Sem categorias disponíveis.</p>{% endfor %}
 </section>
 <section class="chart-card" aria-labelledby="distritos-title"><div class="chart-heading"><span class="eyebrow">DISTRIBUIÇÃO TERRITORIAL</span><h3 id="distritos-title">Distritos com mais registros</h3><p>Distribuição de ocorrências, não de atendimento</p></div>
 {% for item in resumo.distritos %}
-<div class="bar-row"><div class="bar-label"><span>{{ item.nome }}</span><strong>{{ item.total }}</strong></div><div class="bar-track"><div class="bar-fill secondary-fill" style="width:{{ item.percentual }}%"></div></div></div>
+<div class="bar-row"><div class="bar-label"><span>{{ item.nome }}</span><strong>{{ item.total }}</strong></div><progress class="bar-track secondary-fill" value="{{ item.percentual }}" max="100">{{ item.percentual }}%</progress></div>
 {% else %}<p>Sem dados territoriais disponíveis.</p>{% endfor %}
 </section>
 </div>
 <section class="chart-card bands-panel" aria-labelledby="faixas-title">
 <div><span class="eyebrow">COMPARAÇÃO DE PONTUAÇÕES</span><h3 id="faixas-title">Como as prioridades se distribuem</h3><p>Faixas ilustrativas para leitura do score; não representam prazos legais ou decisão oficial.</p></div>
-<div class="band-list">{% for faixa in resumo.faixas %}<div class="band-item"><div class="band-top"><span>{{ faixa.nome }}</span><strong>{{ faixa.total }} <small>({{ faixa.percentual }}%)</small></strong></div><div class="bar-track"><div class="bar-fill {% if loop.index == 2 %}secondary-fill{% elif loop.index == 3 %}muted-fill{% endif %}" style="width:{{ faixa.percentual }}%"></div></div></div>{% endfor %}</div>
+<div class="band-list">{% for faixa in resumo.faixas %}<div class="band-item"><div class="band-top"><span>{{ faixa.nome }}</span><strong>{{ faixa.total }} <small>({{ faixa.percentual }}%)</small></strong></div><progress class="bar-track {% if loop.index == 2 %}secondary-fill{% elif loop.index == 3 %}muted-fill{% endif %}" value="{{ faixa.percentual }}" max="100">{{ faixa.percentual }}%</progress></div>{% endfor %}</div>
 </section>
 </section>
 <section class="section-spaced" id="destaques">
@@ -55,7 +55,7 @@
 <article class="occ-card"><div class="card-top"><span class="rank">Posição #{{ d.rank }}</span><span class="score-tag">{{ '%.2f'|format(d.score_0_100 or 0) }} / 100</span></div>
 <h3><a href="{{ url_for('detalhe_ocorrencia',cluster_id=d.cluster_id) }}">{{ d.titulo }}</a></h3>
 <p class="card-location">{{ d.area_nome or 'Distrito não informado' }} · {{ d.n_relatos }} relato(s) agrupado(s)</p>
-<div class="score-track"><div style="width:{{ d.score_pct }}%"></div></div>
+<progress class="score-track" value="{{ d.score_pct }}" max="100" aria-label="Pontuação de priorização: {{ d.score_0_100 or 0 }} em 100">{{ d.score_pct }}%</progress>
 <div class="card-footer"><span>{{ d.faixa }}</span><span>{% if d.acompanhamento == 'nao_iniciado' %}Sem registro operacional{% else %}Acompanhamento registrado{% endif %}</span></div></article>
 {% else %}<p>Nenhuma ocorrência disponível na fotografia consultada.</p>{% endfor %}</div>
 </section>

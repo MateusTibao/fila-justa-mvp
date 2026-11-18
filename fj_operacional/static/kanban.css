@@ -30,3 +30,14 @@
 .activity-day{font-size:11px;font-weight:650;color:#708397;margin-top:9px}
 .info-strip{background:#eef4fb;border:1px solid #dce6f2;border-radius:10px;padding:18px 20px;color:#45617a;font-size:13px;line-height:1.6}
 @media(max-width:800px){.management-analytics{grid-template-columns:1fr}.inbox-head{flex-direction:column}.inbox-head a{white-space:normal}.inbox-grid{grid-template-columns:repeat(auto-fit,minmax(195px,1fr))}}
+
+/* Gráficos por <progress>: CSP permite estilos externos, sem style inline. */
+progress.admin-bar-track{display:block;appearance:none;-webkit-appearance:none;width:100%;height:9px;border:0;border-radius:20px;overflow:hidden;background:#eaf0f6;color:#1556a8}
+progress.admin-bar-track::-webkit-progress-bar{background:#eaf0f6;border-radius:20px}
+progress.admin-bar-track::-webkit-progress-value{background:#1556a8;border-radius:20px}
+progress.admin-bar-track::-moz-progress-bar{background:#1556a8;border-radius:20px}
+.activity-track{position:relative;display:flex;align-items:center;justify-content:center;overflow:visible;background:transparent}
+progress.activity-meter{appearance:none;-webkit-appearance:none;width:118px;height:28px;max-width:none;border:0;flex-shrink:0;transform:rotate(-90deg);background:#ecf1f6;color:#175bad}
+progress.activity-meter::-webkit-progress-bar{background:#ecf1f6;border-radius:5px}
+progress.activity-meter::-webkit-progress-value{background:#175bad;border-radius:5px}
+progress.activity-meter::-moz-progress-bar{background:#175bad;border-radius:5px}

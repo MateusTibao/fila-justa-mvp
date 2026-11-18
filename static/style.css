@@ -60,3 +60,16 @@ body{color:var(--texto);background:#f5f7fa}
 @media(max-width:1000px){.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.bands-panel{grid-template-columns:1fr;gap:20px}}
 @media(max-width:760px){.analytics-grid{grid-template-columns:1fr}.header-content{min-height:78px}.main-nav{gap:11px}.main-nav a{font-size:12px}.observatorio{padding-top:42px}.card-grid{grid-template-columns:1fr}.search-actions{flex-wrap:wrap}.search-actions input{flex-basis:100%}.kpi{padding:16px}.details-list div{flex-direction:column;gap:4px}.details-list dd{text-align:left}}
 @media(max-width:480px){.main-nav a.current,.main-nav a:not(.nav-action){display:inline-block}.main-nav a[href="#indicadores"]{display:none}.kpi-grid{grid-template-columns:1fr 1fr}.kpi strong{font-size:28px}.kpi small{font-size:10px}.chart-card{padding:18px}.detail-panel{padding:20px}.result-toolbar{align-items:flex-start}}
+
+/* Barras nativas: compatíveis com Content-Security-Policy sem unsafe-inline. */
+progress.bar-track,progress.score-track{display:block;appearance:none;-webkit-appearance:none;width:100%;height:9px;border:0;border-radius:30px;overflow:hidden;background:#e7edf4;color:#1858ad}
+progress.score-track{height:6px;margin:5px 0}
+progress.bar-track::-webkit-progress-bar,progress.score-track::-webkit-progress-bar{background:#e7edf4;border-radius:30px}
+progress.bar-track::-webkit-progress-value,progress.score-track::-webkit-progress-value{background:#1858ad;border-radius:30px}
+progress.bar-track::-moz-progress-bar,progress.score-track::-moz-progress-bar{background:#1858ad;border-radius:30px}
+progress.bar-track.secondary-fill{color:#217f83}
+progress.bar-track.secondary-fill::-webkit-progress-value{background:#217f83}
+progress.bar-track.secondary-fill::-moz-progress-bar{background:#217f83}
+progress.bar-track.muted-fill{color:#879caf}
+progress.bar-track.muted-fill::-webkit-progress-value{background:#879caf}
+progress.bar-track.muted-fill::-moz-progress-bar{background:#879caf}

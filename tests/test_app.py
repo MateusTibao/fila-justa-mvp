@@ -50,6 +50,8 @@ def test_index_renders_priorities(client):
     assert response.status_code == 200
     assert 'Tucuruvi' in response.get_data(as_text=True)
     assert '51.55' in response.get_data(as_text=True)
+    assert 'style="' not in response.get_data(as_text=True)
+    assert '<progress' in response.get_data(as_text=True)
 
 
 def test_index_handles_database_failure(client):
@@ -69,6 +71,7 @@ def test_catalogo_publico_sem_login(client):
     assert response.status_code == 200
     assert 'fj-02' in response.get_data(as_text=True)
     assert '88.00' in response.get_data(as_text=True)
+    assert 'style="' not in response.get_data(as_text=True)
     assert consulta.call_args.kwargs['busca']=='fj-02'
 
 
