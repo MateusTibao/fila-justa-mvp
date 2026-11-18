@@ -4,7 +4,7 @@ Somente chamadas explicitamente autorizadas pelo adaptador de autenticação
 podem usar estes métodos: o repositório também revalida perfis e transições.
 """
 from __future__ import annotations
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 
 from sqlalchemy import select, insert, update, func, text, or_
@@ -127,6 +127,48 @@ class DemandasRepository:
             raise
         return self.buscar(identificador)
 
+    def entrada_gold(self, *, limite=18):
+        """Fila Gold recebida automaticamente, sem gravar novas demandas."""
+        limite = max(1, min(int(limite), 30))
+        with self.engine.connect() as conn:
+            origem = conn.execute(text("""
+                SELECT rank, cluster_id, tipo, area_nome, score_0_100, run_id
+                FROM gold.mart_fila_priorizacao
+                ORDER BY rank ASC NULLS LAST LIMIT 120
+            """)).mappings().all()
+            ids = [str(row["cluster_id"]) for row in origem if row["cluster_id"] is not None]
+            if not ids:
+                return []
+            usados = set(conn.execute(select(demandas.c.cluster_id)
+                        .where(demandas.c.cluster_id.in_(ids))).scalars().all())
+        itens = []
+        for row in origem:
+            cid = str(row["cluster_id"])
+            if cid in usados:
+                continue
+            tipo = str(row["tipo"] or "Ocorrência urbana").replace("_"," ").capitalize()
+            area = str(row["area_nome"] or "Local não informado")
+            itens.append({"cluster_id": cid, "rank": row["rank"],
+                           "titulo": f"{tipo} — {area}", "tipo": row["tipo"],
+                           "area_nome": row["area_nome"],
+                           "score_origem": round(float(row["score_0_100"] or 0), 2),
+                           "status": "nova", "preview": True})
+            if len(itens) >= limite:
+                break
+        return itens
+
+    def acompanhar_gold(self, *, ator, perfil, cluster_id):
+        """Materializa somente na primeira movimentação, preservando histórico."""
+        validar_perfil(perfil)
+        if perfil not in {"gestor", "administrador"}:
+            raise SemPermissaoError("Encaminhamento inicial exige gestor")
+        item = self.importar_gold(ator=ator, perfil=perfil, cluster_id=cluster_id)
+        if item["status"] != "nova":
+            return item
+        return self.mudar_status(demanda_id=item["id"], destino="pendente",
+                                 versao=item["versao"], ator=ator, perfil=perfil,
+                                 justificativa="Encaminhada da fila analítica para acompanhamento")
+
     def mudar_status(self, *, demanda_id, destino, versao, ator, perfil, justificativa=""):
         justificativa = _limpar(justificativa, 2000)
         with self.engine.begin() as conn:
@@ -218,13 +260,37 @@ class DemandasRepository:
                 'itens': [_json(r) for r in registros]}
 
     def metricas(self):
+        agora = utcnow()
+        inicio = (agora - timedelta(days=6)).date()
         with self.engine.connect() as conn:
             linhas = conn.execute(select(demandas.c.status, func.count().label('total'))
                                   .group_by(demandas.c.status)).all()
             atrasadas = conn.execute(select(func.count()).select_from(demandas).where(
-                demandas.c.status.in_(STATUS[:4]), demandas.c.prazo_em < utcnow()
+                demandas.c.status.in_(STATUS[:4]), demandas.c.prazo_em < agora
             )).scalar_one()
+            grupos = conn.execute(select(demandas.c.tipo, func.count().label('total'))
+                       .group_by(demandas.c.tipo).order_by(func.count().desc()).limit(6)).all()
+            territ = conn.execute(select(demandas.c.area_nome, func.count().label('total'))
+                      .group_by(demandas.c.area_nome).order_by(func.count().desc()).limit(6)).all()
+            eventos = conn.execute(select(historico.c.ocorrido_em)
+                      .where(historico.c.tipo_evento == 'transicao',
+                             historico.c.ocorrido_em >= agora - timedelta(days=6))).scalars().all()
         contagem = {nome: 0 for nome in STATUS}
         contagem.update({nome: total for nome, total in linhas})
-        return {'por_status': contagem, 'total': sum(contagem.values()),
-                'ativas': sum(contagem[s] for s in STATUS[:4]), 'atrasadas': atrasadas}
+        total = sum(contagem.values())
+        hist = {}
+        for evento in eventos:
+            dia = evento.date().isoformat() if isinstance(evento, datetime) else str(evento)[:10]
+            hist[dia] = hist.get(dia, 0) + 1
+        ultimos = []
+        for pos in range(7):
+            data = (inicio + timedelta(days=pos))
+            quantidade = hist.get(data.isoformat(), 0)
+            ultimos.append({"dia": data.strftime("%d/%m"), "total": quantidade})
+        return {'por_status': contagem, 'total': total,
+                'ativas': sum(contagem[s] for s in STATUS[:4]), 'atrasadas': atrasadas,
+                'movimentos7d': ultimos, 'total_movimentos7d': sum(d['total'] for d in ultimos),
+                'tipos': [{'nome':str(n or 'Não classificado').replace('_',' ').capitalize(),
+                           'total':int(q), 'pct':round(q/total*100,1) if total else 0} for n,q in grupos],
+                'distritos': [{'nome':str(n or 'Não informado'), 'total':int(q),
+                              'pct':round(q/total*100,1) if total else 0} for n,q in territ]}

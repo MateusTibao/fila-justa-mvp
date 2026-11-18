@@ -14,9 +14,9 @@ def setup():
         conn.exec_driver_sql("ATTACH DATABASE ':memory:' AS gold")
         metadata.create_all(conn)
         conn.exec_driver_sql("""CREATE TABLE gold.mart_fila_priorizacao
-            (cluster_id TEXT PRIMARY KEY, tipo TEXT, area_nome TEXT,
+            (rank INTEGER, cluster_id TEXT PRIMARY KEY, tipo TEXT, area_nome TEXT,
              score_0_100 REAL, run_id TEXT)""")
-        conn.exec_driver_sql("INSERT INTO gold.mart_fila_priorizacao VALUES ('c-001','alagamento','Sé',87,'run-1')")
+        conn.exec_driver_sql("INSERT INTO gold.mart_fila_priorizacao VALUES (1,'c-001','alagamento','Sé',87,'run-1')")
     yield DemandasRepository(engine), engine
     engine.dispose()
 
@@ -137,3 +137,39 @@ def test_metricas_operacionais(setup):
     assert repo.metricas()['atrasadas'] == 1
     repo.mudar_status(demanda_id=d['id'], destino='pendente', versao=1, ator='g', perfil='gestor')
     assert repo.metricas()['por_status']['pendente'] == 1
+
+def test_entrada_gold_nao_persiste_sem_movimentacao(setup):
+    repo, _ = setup
+    entrada = repo.entrada_gold()
+    assert len(entrada) == 1
+    assert entrada[0]['cluster_id'] == 'c-001'
+    assert entrada[0]['score_origem'] == 87
+    assert repo.listar()['total'] == 0
+
+
+def test_encaminhamento_idempotente_e_com_auditoria(setup):
+    repo, _ = setup
+    d = repo.acompanhar_gold(ator='gestor', perfil='gestor', cluster_id='c-001')
+    assert d['status'] == 'pendente' and d['origem'] == 'gold'
+    assert d['score_origem'] == 87
+    assert len(repo.historico_da_demanda(d['id'])) == 2
+    assert repo.entrada_gold() == []
+    segundo = repo.acompanhar_gold(ator='gestor2', perfil='gestor', cluster_id='c-001')
+    assert segundo['id'] == d['id'] and segundo['versao'] == 2
+    assert len(repo.historico_da_demanda(d['id'])) == 2
+
+
+def test_operador_nao_inicia_acompanhamento_gold(setup):
+    repo, _ = setup
+    with pytest.raises(SemPermissaoError):
+        repo.acompanhar_gold(ator='op', perfil='operador', cluster_id='c-001')
+    assert repo.listar()['total'] == 0
+
+
+def test_metricas_incluem_transicoes_reais(setup):
+    repo, _ = setup
+    d = repo.acompanhar_gold(ator='gestor', perfil='gestor', cluster_id='c-001')
+    m = repo.metricas()
+    assert m['total_movimentos7d'] >= 1
+    assert sum(x['total'] for x in m['movimentos7d']) == m['total_movimentos7d']
+    assert m['tipos'][0]['total'] == 1

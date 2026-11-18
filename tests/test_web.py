@@ -14,8 +14,8 @@ def contexto():
         conn.exec_driver_sql("ATTACH DATABASE ':memory:' AS operacional")
         conn.exec_driver_sql("ATTACH DATABASE ':memory:' AS gold")
         metadata.create_all(conn)
-        conn.exec_driver_sql('CREATE TABLE gold.mart_fila_priorizacao (cluster_id TEXT, tipo TEXT, area_nome TEXT, score_0_100 REAL, run_id TEXT)')
-        conn.exec_driver_sql("INSERT INTO gold.mart_fila_priorizacao VALUES ('teste1','buraco','Sé',90,'runA')")
+        conn.exec_driver_sql('CREATE TABLE gold.mart_fila_priorizacao (rank INTEGER, cluster_id TEXT, tipo TEXT, area_nome TEXT, score_0_100 REAL, run_id TEXT)')
+        conn.exec_driver_sql("INSERT INTO gold.mart_fila_priorizacao VALUES (1,'teste1','buraco','Sé',90,'runA')")
     app = Flask(__name__)
     app.config.update(TESTING=True, SECRET_KEY='test-only-secret')
     estado = {'usuario': None}
@@ -62,3 +62,19 @@ def test_fluxo_http_e_historia(contexto):
     estado['usuario'] = {'id':'operador-id','perfil':'operador'}
     assert client.post('/api/gestao/demandas', json={'titulo':'Ilegal'}, headers=headers).status_code == 403
     assert client.get('/gestao/dashboard').status_code == 200
+
+def test_entrada_da_gold_so_leitura_e_acompanhamento_autorizado(contexto):
+    client, estado = contexto
+    assert client.get('/api/gestao/entrada').status_code == 401
+    estado['usuario']={'id':'gestor','perfil':'gestor'}
+    inicio = client.get('/api/gestao/entrada')
+    assert inicio.status_code == 200
+    assert inicio.json['itens'][0]['cluster_id'] == 'teste1'
+    assert client.get('/api/gestao/demandas').json['total'] == 0
+    assert client.post('/api/gestao/acompanhar',json={'cluster_id':'teste1'}).status_code == 403
+    iniciado = client.post('/api/gestao/acompanhar',json={'cluster_id':'teste1'},
+                          headers={'X-CSRFToken':'token-valido'})
+    assert iniciado.status_code == 200
+    assert iniciado.json['status'] == 'pendente'
+    assert client.get('/api/gestao/entrada').json['itens'] == []
+    assert client.get('/api/gestao/demandas').json['total'] == 1

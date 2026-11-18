@@ -1,0 +1,17 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Detalhes da ocorrência | Fila Justa</title><link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}"></head><body>
+<header class="site-header"><div class="container header-content"><a href="{{ url_for('index') }}" class="brand"><img src="{{ url_for('static',filename='fila-justa-logo.svg') }}" alt="Fila Justa"></a><nav class="main-nav"><a href="{{ url_for('index') }}">Visão geral</a><a href="{{ url_for('ocorrencias') }}">Consultar ocorrências</a>{% if operacional_ativo %}<a class="nav-action" href="{{ url_for('login') }}">Acesso da equipe</a>{% endif %}</nav></div></header>
+<main class="container"><div class="page-heading"><span class="eyebrow">CONSULTA DE REGISTRO</span><a class="text-button" href="{{ url_for('ocorrencias') }}">← Voltar para busca</a></div>
+{% if error %}<div class="notice">Não foi possível consultar a ocorrência neste momento.</div>
+{% elif item %}
+<article class="detail-panel"><span class="eyebrow">POSIÇÃO #{{ item.rank }} NA FILA</span><h1>{{ item.titulo }}</h1>
+<p class="card-location">Distrito: {{ item.area_nome or 'Não informado' }} · {{ item.n_relatos }} relato(s) agrupado(s)</p>
+<div class="detail-score"><strong>{{ '%.2f'|format(item.score_0_100 or 0) }}</strong><span>pontos em 100 · Faixa {{ item.faixa }}</span></div>
+<dl class="details-list"><div><dt>ID do cartão</dt><dd><code>{{ item.cluster_id }}</code></dd></div><div><dt>Origem</dt><dd>Fila Gold do processamento analítico</dd></div><div><dt>Acompanhamento</dt><dd>{% set nomes = {'nova':'Recebida para triagem','pendente':'Aguardando encaminhamento','em_andamento':'Em atendimento','aguardando_validacao':'Em conferência','resolvida':'Atendimento concluído','cancelada':'Registro encerrado'} %}{{ nomes.get(item.acompanhamento,'Sem atualização operacional') }}</dd></div></dl>
+<h2>Fundamentação da prioridade</h2><p>{{ item.explicacao or 'Não há descrição metodológica específica para este registro.' }}</p>
+<p class="source-note">A prioridade é obtida automaticamente da Gold. Acompanhamento operacional, quando registrado, é mantido em uma camada separada.</p>
+</article>
+{% endif %}
+<p class="disclaimer">Projeto acadêmico demonstrativo. Não substitui o protocolo ou o acompanhamento oficial junto à Prefeitura.</p></main>
+<footer class="site-footer"><div class="container">Fila Justa · Engenharia de Software · 2026</div></footer>
+</body></html>

@@ -101,6 +101,19 @@ def criar_blueprint(*, engine, usuario_atual, validar_csrf, token_csrf):
             titulo=j.get("titulo", ""), descricao=j.get("descricao", ""),
             tipo=j.get("tipo"), area_nome=j.get("area_nome"), prazo_em=j.get("prazo_em"))), 201
 
+    @bp.get("/api/gestao/entrada")
+    def entrada():
+        # Projeção da Gold em tempo de consulta; nenhuma linha operacional criada.
+        return jsonify({"itens": repo.entrada_gold(limite=18)})
+
+    @bp.post("/api/gestao/acompanhar")
+    def acompanhar():
+        usuario = contexto()
+        j = request.get_json(silent=True) or {}
+        return jsonify(repo.acompanhar_gold(
+            ator=usuario["id"], perfil=usuario["perfil"],
+            cluster_id=j.get("cluster_id", "")))
+
     @bp.route("/api/gestao/importar-gold", methods=["POST"])
     def importar():
         usuario = contexto()

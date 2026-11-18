@@ -94,14 +94,63 @@ def security_headers(response):
 
 @app.get('/')
 def index():
+    from fj_publico import indicadores_gold, listar_gold
     try:
-        rows = fetch_priorities()
-        return render_template('index.html', rows=rows, error=False,
-                               operacional_ativo=operacional_configurado())
-    except (psycopg.Error, RuntimeError):
-        app.logger.error('Consulta à fila indisponível')
-        return render_template('index.html', rows=[], error=True,
+        resumo = indicadores_gold(get_connection)
+        catalogo = listar_gold(get_connection, por_pagina=6,
+                                engine=app.config.get('OP_ENGINE'), log=app.logger)
+        return render_template('index.html', resumo=resumo, destaques=catalogo['itens'],
+                               error=False, operacional_ativo=operacional_configurado())
+    except (psycopg.Error, RuntimeError, ValueError):
+        app.logger.error('Painel público indisponível')
+        return render_template('index.html', resumo=None, destaques=[], error=True,
                                operacional_ativo=operacional_configurado()), 503
+
+
+@app.get('/ocorrencias')
+def ocorrencias():
+    from fj_publico import listar_gold
+    busca = request.args.get('q', '')[:120]
+    pagina = request.args.get('page', 1, type=int) or 1
+    try:
+        dados = listar_gold(get_connection, busca=busca, pagina=pagina,
+                            engine=app.config.get('OP_ENGINE'), log=app.logger)
+        return render_template('ocorrencias.html', dados=dados, error=False,
+                               operacional_ativo=operacional_configurado())
+    except (psycopg.Error, RuntimeError, ValueError):
+        app.logger.error('Consulta pública indisponível')
+        return render_template('ocorrencias.html', dados={'itens':[], 'total':0,
+                               'pagina':1,'paginas':1,'busca':busca},error=True,
+                               operacional_ativo=operacional_configurado()),503
+
+
+@app.get('/api/ocorrencias')
+def api_ocorrencias():
+    from fj_publico import listar_gold
+    try:
+        return jsonify(listar_gold(get_connection,
+            busca=request.args.get('q', '')[:120],
+            pagina=request.args.get('page', 1, type=int) or 1,
+            engine=app.config.get('OP_ENGINE'), log=app.logger))
+    except (psycopg.Error, RuntimeError, ValueError):
+        app.logger.error('API pública de ocorrências indisponível')
+        return jsonify(erro='Dados temporariamente indisponíveis'),503
+
+
+@app.get('/ocorrencias/<path:cluster_id>')
+def detalhe_ocorrencia(cluster_id):
+    from fj_publico import obter_gold
+    try:
+        item = obter_gold(get_connection, cluster_id, engine=app.config.get('OP_ENGINE'),
+                          log=app.logger)
+    except (psycopg.Error, RuntimeError, ValueError):
+        app.logger.error('Detalhe público indisponível')
+        return render_template('ocorrencia.html', item=None, error=True,
+                               operacional_ativo=operacional_configurado()),503
+    if item is None:
+        abort(404)
+    return render_template('ocorrencia.html', item=item, error=False,
+                           operacional_ativo=operacional_configurado())
 
 
 @app.get('/health')

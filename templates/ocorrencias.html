@@ -1,0 +1,39 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Consulte registros agrupados e a pontuação de prioridade do Fila Justa.">
+<title>Consultar ocorrências | Fila Justa</title>
+<link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}"></head><body>
+<header class="site-header"><div class="container header-content"><a href="{{ url_for('index') }}" class="brand"><img src="{{ url_for('static',filename='fila-justa-logo.svg') }}" alt="Fila Justa"></a>
+<nav class="main-nav"><a href="{{ url_for('index') }}">Visão geral</a><a class="current" href="{{ url_for('ocorrencias') }}">Consultar ocorrências</a>{% if operacional_ativo %}<a class="nav-action" href="{{ url_for('login') }}">Acesso da equipe</a>{% endif %}</nav></div></header>
+<main class="container">
+<section class="page-heading"><span class="eyebrow">CONSULTA PÚBLICA · SEM CADASTRO</span><h1>Ocorrências da fila analítica</h1>
+<p>Pesquise pelo <strong>ID do cartão</strong>, título, categoria ou distrito. Os resultados vêm do processamento de dados e já possuem pontuação de prioridade.</p></section>
+<form class="search-panel" method="get" action="{{ url_for('ocorrencias') }}" role="search"><label for="busca">Buscar ocorrência</label><div class="search-actions"><input autofocus id="busca" name="q" value="{{ dados.busca }}" maxlength="120" placeholder="Digite o ID, título ou distrito"><button class="primary-button" type="submit">Consultar</button><a href="{{ url_for('ocorrencias') }}" class="text-button">Limpar</a></div></form>
+{% if error %}<div class="notice" role="alert">A consulta está temporariamente indisponível. Tente novamente mais tarde.</div>
+{% else %}
+<div class="result-toolbar"><p><strong>{{ '{:,}'.format(dados.total).replace(',','.') }}</strong> ocorrência(s) encontrada(s) · Página {{ dados.pagina }} de {{ dados.paginas }}</p>
+<button id="alternar-demo" type="button" class="outline-button" aria-pressed="false">Ativar simulação de acompanhamento</button></div>
+<div id="demo-nota" class="demo-nota" role="status" hidden><strong>Ambiente de demonstração.</strong> Alterações feitas aqui aparecem somente neste navegador e não representam atendimento público realizado.</div>
+<div class="card-grid catalog-grid">
+{% set nomes = {'nova':'Recebida para triagem','pendente':'Aguardando encaminhamento','em_andamento':'Em atendimento','aguardando_validacao':'Em conferência','resolvida':'Atendimento concluído','cancelada':'Registro encerrado'} %}
+{% for d in dados.itens %}
+<article class="occ-card" data-cluster="{{ d.cluster_id }}">
+<div class="card-top"><span class="rank">#{{ d.rank }}</span><span class="score-tag">{{ '%.2f'|format(d.score_0_100 or 0) }} / 100</span></div>
+<h2><a href="{{ url_for('detalhe_ocorrencia',cluster_id=d.cluster_id) }}">{{ d.titulo }}</a></h2>
+<p class="card-location">{{ d.area_nome or 'Distrito não informado' }} · {{ d.n_relatos }} relato(s) agrupado(s)</p>
+<div class="score-track" aria-label="Pontuação de priorização {{ d.score_0_100 or 0 }} de 100"><div style="width:{{ d.score_pct }}%"></div></div>
+<div class="card-footer"><span>Faixa {{ d.faixa }}</span><span class="real-status">{% if d.acompanhamento == 'nao_iniciado' %}Sem atualização operacional{% else %}{{ nomes.get(d.acompanhamento,'Acompanhamento registrado') }}{% endif %}</span></div>
+<p class="card-id"><span>ID:</span> <code>{{ d.cluster_id }}</code></p>
+<div class="demo-control" hidden><label>Simular atualização deste cartão<select class="simular-estado"><option value="">Selecionar etapa</option><option>Recebida para triagem</option><option>Aguardando encaminhamento</option><option>Em atendimento</option><option>Em conferência</option><option>Atendimento concluído</option></select></label><p class="demo-resultado" aria-live="polite"></p></div>
+</article>
+{% else %}<div class="empty-state"><h2>Nenhum registro encontrado</h2><p>Confira o ID digitado ou use outra expressão de busca.</p></div>{% endfor %}
+</div>
+<nav class="pagination" aria-label="Paginação da consulta">
+{% if dados.pagina > 1 %}<a href="{{ url_for('ocorrencias',q=dados.busca,page=dados.pagina-1) }}">← Página anterior</a>{% endif %}
+<span>{{ dados.pagina }} / {{ dados.paginas }}</span>
+{% if dados.pagina < dados.paginas %}<a href="{{ url_for('ocorrencias',q=dados.busca,page=dados.pagina+1) }}">Próxima página →</a>{% endif %}
+</nav>
+{% endif %}
+<p class="disclaimer">As posições refletem a fotografia analítica disponível; não são protocolos oficiais. A simulação não grava alterações no banco. A atualização real do acompanhamento exige credenciais de gestão.</p>
+</main><footer class="site-footer"><div class="container">Fila Justa · Consulta pública de dados demonstrativos</div></footer>
+<script src="{{ url_for('static',filename='simulacao.js') }}" defer></script>
+</body></html>

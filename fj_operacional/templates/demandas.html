@@ -1,21 +1,24 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Demandas · Fila Justa</title><link rel="stylesheet" href="{{ url_for('fj_operacional.static',filename='kanban.css') }}"></head>
+<title>Registros acompanhados | Fila Justa</title><link rel="stylesheet" href="{{ url_for('fj_operacional.static',filename='kanban.css') }}"></head>
 <body><header class="topbar"><a href="/"><img src="{{ url_for('fj_operacional.static', filename='fila-justa-logo.svg') }}" alt="Fila Justa" class="logo-small"></a>
-<nav><a href="/">Fila pública</a><a href="/gestao/kanban">Kanban</a><a href="/gestao/dashboard">Indicadores</a></nav>
+<nav><a href="/">Visão geral</a><a href="/ocorrencias">Consulta pública</a><a href="/gestao/kanban">Quadro de atendimento</a><a href="/gestao/dashboard">Indicadores</a></nav>
 <div class="perfil">{{ perfil }}<form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="secondary">Sair</button></form></div></header>
-<main><p class="eyebrow">CENTRAL OPERACIONAL</p><h1>Demandas cadastradas</h1><p>Consulte e acompanhe os registros de atendimento.</p>
+<main><p class="eyebrow">CENTRAL OPERACIONAL</p><h1>Registros em acompanhamento</h1><p class="note">Esta lista contém apenas ocorrências com movimentações operacionais. Consulte <a href="/ocorrencias">todos os cartões da fila analítica</a> sem autenticação.</p>
 <form method="get" class="filters" action="/gestao/demandas">
-<label>Pesquisar<input name="q" placeholder="Título, distrito, tipo ou cluster" value="{{ busca }}" maxlength="120"></label>
-<label>Situação<select name="status"><option value="">Todas</option>{% for valor,nome in [('nova','Nova'),('pendente','Pendente'),('em_andamento','Em andamento'),('aguardando_validacao','Aguardando validação'),('resolvida','Resolvida'),('cancelada','Cancelada')] %}
-<option value="{{ valor }}" {% if situacao == valor %}selected{% endif %}>{{ nome }}</option>{% endfor %}</select></label>
-<button type="submit">Filtrar</button></form>
-<p class="note">{{ dados.total }} demanda(s) encontrada(s) · página {{ dados.pagina }} de {{ dados.paginas }}</p>
-<div class="table-wrap"><table class="records"><thead><tr><th>Demanda</th><th>Local</th><th>Situação</th><th>Prazo</th><th>Atualização</th><th>Acessar</th></tr></thead>
-<tbody>{% for d in dados.itens %}<tr><td><strong>{{ d.titulo }}</strong><br><small>{{ d.tipo or 'Tipo não informado' }}</small></td>
-<td>{{ d.area_nome or 'Não informado' }}</td><td>{{ d.status | replace('_',' ') | capitalize }}</td>
-<td><span class="badge {{ d.situacao_prazo }}">{{ d.situacao_prazo | replace('_',' ') }}</span></td>
-<td>{{ d.atualizado_em[:16] | replace('T',' ') }}</td><td><a href="{{ url_for('fj_operacional.tela_kanban', abrir=d.id) }}">Abrir</a></td></tr>
-{% else %}<tr><td colspan="6">Nenhuma demanda encontrada.</td></tr>{% endfor %}</tbody></table></div>
-<nav class="pagination" aria-label="Navegação das páginas">{% if dados.pagina > 1 %}<a href="{{ url_for('fj_operacional.tela_demandas', q=busca, status=situacao, page=dados.pagina-1) }}">Anterior</a>{% endif %}
-{% if dados.pagina < dados.paginas %}<a href="{{ url_for('fj_operacional.tela_demandas', q=busca, status=situacao, page=dados.pagina+1) }}">Próxima</a>{% endif %}</nav>
-</main></body></html>
+<label>Pesquisar<input name="q" placeholder="ID, título, categoria ou distrito" value="{{ busca }}" maxlength="120"></label>
+<label>Etapa<select name="status"><option value="">Todas</option>
+{% for valor,nome in [('nova','Recebida'),('pendente','Em triagem'),('em_andamento','Em atendimento'),('aguardando_validacao','Em conferência'),('resolvida','Concluída'),('cancelada','Arquivada')] %}
+<option value="{{ valor }}" {% if situacao == valor %}selected{% endif %}>{{ nome }}</option>{% endfor %}
+</select></label><button type="submit">Filtrar</button></form>
+<p class="note">{{ dados.total }} registro(s) · página {{ dados.pagina }} de {{ dados.paginas }}</p>
+<div class="table-wrap"><table class="records"><thead><tr><th>Ocorrência</th><th>Território</th><th>Prioridade de origem</th><th>Etapa</th><th>Última movimentação</th><th>Consulta</th></tr></thead>
+<tbody>{% set rotulos={'nova':'Recebida','pendente':'Em triagem','em_andamento':'Em atendimento','aguardando_validacao':'Em conferência','resolvida':'Concluída','cancelada':'Arquivada'} %}
+{% for d in dados.itens %}<tr><td><strong>{{ d.titulo }}</strong><br><small>ID: {{ d.cluster_id or d.id }}</small></td>
+<td>{{ d.area_nome or 'Não informado' }}</td><td><strong>{% if d.score_origem is not none %}{{ '%.2f'|format(d.score_origem) }} / 100{% else %}Não calculada{% endif %}</strong></td>
+<td>{{ rotulos.get(d.status,d.status) }}</td><td>{{ d.atualizado_em[:16] | replace('T',' ') }}</td>
+<td><a href="{{ url_for('fj_operacional.tela_kanban',abrir=d.id) }}">Ver histórico</a></td></tr>
+{% else %}<tr><td colspan="6">Nenhum acompanhamento registrado. Os cartões recebidos estão no quadro de atendimento.</td></tr>{% endfor %}
+</tbody></table></div><nav class="pagination" aria-label="Paginação da gestão">
+{% if dados.pagina > 1 %}<a href="{{ url_for('fj_operacional.tela_demandas',q=busca,status=situacao,page=dados.pagina-1) }}">Anterior</a>{% endif %}
+{% if dados.pagina < dados.paginas %}<a href="{{ url_for('fj_operacional.tela_demandas',q=busca,status=situacao,page=dados.pagina+1) }}">Próxima</a>{% endif %}
+</nav></main></body></html>

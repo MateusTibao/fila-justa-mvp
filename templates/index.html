@@ -1,27 +1,66 @@
 <!doctype html>
-<html lang="pt-BR"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Fila Justa: priorização de ocorrências urbanas com critérios de equidade.">
-<title>Fila Justa | Priorização urbana</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head><body>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Fila Justa — observatório público de ocorrências urbanas e prioridades territoriais.">
+<title>Fila Justa | Observatório de demandas urbanas</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body>
 <header class="site-header"><div class="container header-content">
-<a href="/" class="brand" aria-label="Fila Justa início"><img src="{{ url_for('static', filename='fila-justa-logo.svg') }}" alt="Fila Justa"></a>
-<nav class="main-nav"><a href="#fila">Fila de prioridade</a>{% if operacional_ativo %}<a class="nav-action" href="{{ url_for('login') }}">Acessar gestão</a>{% endif %}</nav>
-</div></header>
+<a href="{{ url_for('index') }}" class="brand" aria-label="Fila Justa, página inicial"><img src="{{ url_for('static',filename='fila-justa-logo.svg') }}" alt="Fila Justa"></a>
+<nav class="main-nav" aria-label="Navegação principal">
+<a class="current" href="{{ url_for('index') }}">Visão geral</a>
+<a href="{{ url_for('ocorrencias') }}">Consultar ocorrências</a>
+<a href="#indicadores">Indicadores</a>
+{% if operacional_ativo %}<a class="nav-action" href="{{ url_for('login') }}">Acesso da equipe</a>{% endif %}
+</nav></div></header>
 <main class="container">
-<section class="intro"><span class="eyebrow">TECNOLOGIA PARA GESTÃO URBANA</span>
-<h1>Uma cidade melhor começa por prioridades mais justas.</h1>
-<p>O Fila Justa reúne dados de ocorrências urbanas e organiza prioridades com critérios explicáveis, considerando clima e desigualdade de registros entre territórios.</p>
-{% if operacional_ativo %}<a href="{{ url_for('login') }}" class="primary-button">Abrir central de gestão</a>{% endif %}
+<section class="intro observatorio">
+<div class="eyebrow"><span class="dot"></span> OBSERVATÓRIO DE DEMANDAS URBANAS · SÃO PAULO</div>
+<h1>Prioridades urbanas, com transparência e critérios explicáveis.</h1>
+<p>O Fila Justa organiza ocorrências da base SP156 e de relatos simulados, com indicadores de contexto territorial, clima e equidade. A prioridade vem diretamente do processamento analítico.</p>
+<div class="hero-actions"><a class="primary-button" href="{{ url_for('ocorrencias') }}">Consultar todas as ocorrências</a><a class="text-button" href="#indicadores">Explorar indicadores</a></div>
+<p class="source-note">Painel acadêmico demonstrativo, não vinculado à administração municipal. Ocorrências não correspondem necessariamente a ordens de serviço oficiais.</p>
 </section>
-<section class="panel" id="fila" aria-labelledby="titulo-fila"><div class="panel-heading"><div>
-<span class="eyebrow">DADOS ANALÍTICOS</span><h2 id="titulo-fila">Fila de priorização</h2>
-<p>Primeiras 30 posições do processamento de dados de 2026.</p>
-</div><span class="read-only">Visualização pública</span></div>
-{% if error %}<div class="notice" role="alert">Os dados estão temporariamente indisponíveis.</div>
-{% elif rows %}<div class="table-wrapper"><table><thead><tr><th scope="col">Posição</th><th scope="col">Ocorrência</th><th scope="col">Distrito</th><th scope="col">Pontuação</th><th scope="col">Cluster ID</th></tr></thead>
-<tbody>{% for item in rows %}<tr><td><strong>#{{ item.rank }}</strong></td><td>{{ item.tipo | replace('_',' ') | capitalize }}</td><td>{{ item.area_nome }}</td><td class="score">{{ "%.2f"|format(item.score_0_100) }}</td><td class="cluster-id">{{ item.cluster_id or "—" }}</td></tr>{% endfor %}</tbody></table></div>
-{% else %}<p class="empty">Nenhuma ocorrência disponível.</p>{% endif %}
-</section><p class="disclaimer">Projeto acadêmico e experimental. As pontuações não constituem uma classificação oficial da Prefeitura de São Paulo. A gestão de demandas, quando habilitada, mantém dados operacionais separados do histórico analítico.</p>
-</main><footer class="site-footer"><div class="container">Fila Justa · Engenharia de Software · 2026</div></footer></body></html>
+{% if error %}
+<section class="panel"><div class="notice" role="alert">Os dados estão temporariamente indisponíveis. Tente novamente mais tarde.</div></section>
+{% else %}
+<section id="indicadores" aria-label="Indicadores da fila">
+<div class="section-header"><div><span class="eyebrow">PANORAMA DOS DADOS</span><h2>Retrato da fila analítica</h2><p>Indicadores da última fotografia disponível no banco, não de serviços executados.</p></div></div>
+<div class="kpi-grid">
+<article class="kpi"><span>Ocorrências na fila</span><strong>{{ '{:,}'.format(resumo.total).replace(',','.') }}</strong><small>registros agrupados no processamento</small></article>
+<article class="kpi"><span>Territórios representados</span><strong>{{ resumo.areas }}</strong><small>distritos com ocorrências na fila</small></article>
+<article class="kpi"><span>Pontuação média</span><strong>{{ '%.1f'|format(resumo.media_score) }}</strong><small>escala analítica de 0 a 100</small></article>
+<article class="kpi"><span>Faixa de pontuação elevada</span><strong>{{ '{:,}'.format(resumo.elevadas).replace(',','.') }}</strong><small>pontuação igual ou superior a 75</small></article>
+</div>
+<div class="analytics-grid">
+<section class="chart-card" aria-labelledby="tipos-title"><div class="chart-heading"><span class="eyebrow">COMPOSIÇÃO DA FILA</span><h3 id="tipos-title">Ocorrências por categoria</h3><p>Principais tipos identificados na base</p></div>
+{% for item in resumo.tipos %}
+<div class="bar-row"><div class="bar-label"><span>{{ item.nome }}</span><strong>{{ item.total }}</strong></div><div class="bar-track"><div class="bar-fill" style="width:{{ item.percentual }}%"></div></div></div>
+{% else %}<p>Sem categorias disponíveis.</p>{% endfor %}
+</section>
+<section class="chart-card" aria-labelledby="distritos-title"><div class="chart-heading"><span class="eyebrow">DISTRIBUIÇÃO TERRITORIAL</span><h3 id="distritos-title">Distritos com mais registros</h3><p>Distribuição de ocorrências, não de atendimento</p></div>
+{% for item in resumo.distritos %}
+<div class="bar-row"><div class="bar-label"><span>{{ item.nome }}</span><strong>{{ item.total }}</strong></div><div class="bar-track"><div class="bar-fill secondary-fill" style="width:{{ item.percentual }}%"></div></div></div>
+{% else %}<p>Sem dados territoriais disponíveis.</p>{% endfor %}
+</section>
+</div>
+<section class="chart-card bands-panel" aria-labelledby="faixas-title">
+<div><span class="eyebrow">COMPARAÇÃO DE PONTUAÇÕES</span><h3 id="faixas-title">Como as prioridades se distribuem</h3><p>Faixas ilustrativas para leitura do score; não representam prazos legais ou decisão oficial.</p></div>
+<div class="band-list">{% for faixa in resumo.faixas %}<div class="band-item"><div class="band-top"><span>{{ faixa.nome }}</span><strong>{{ faixa.total }} <small>({{ faixa.percentual }}%)</small></strong></div><div class="bar-track"><div class="bar-fill {% if loop.index == 2 %}secondary-fill{% elif loop.index == 3 %}muted-fill{% endif %}" style="width:{{ faixa.percentual }}%"></div></div></div>{% endfor %}</div>
+</section>
+</section>
+<section class="section-spaced" id="destaques">
+<div class="section-header"><div><span class="eyebrow">PRIORIDADES DO PROCESSAMENTO</span><h2>Primeiras posições da fila</h2><p>Exibição automática dos resultados de priorização; nenhum cadastro manual necessário.</p></div><a href="{{ url_for('ocorrencias') }}" class="text-button">Ver todos os registros</a></div>
+<div class="card-grid">{% for d in destaques %}
+<article class="occ-card"><div class="card-top"><span class="rank">Posição #{{ d.rank }}</span><span class="score-tag">{{ '%.2f'|format(d.score_0_100 or 0) }} / 100</span></div>
+<h3><a href="{{ url_for('detalhe_ocorrencia',cluster_id=d.cluster_id) }}">{{ d.titulo }}</a></h3>
+<p class="card-location">{{ d.area_nome or 'Distrito não informado' }} · {{ d.n_relatos }} relato(s) agrupado(s)</p>
+<div class="score-track"><div style="width:{{ d.score_pct }}%"></div></div>
+<div class="card-footer"><span>{{ d.faixa }}</span><span>{% if d.acompanhamento == 'nao_iniciado' %}Sem registro operacional{% else %}Acompanhamento registrado{% endif %}</span></div></article>
+{% else %}<p>Nenhuma ocorrência disponível na fotografia consultada.</p>{% endfor %}</div>
+</section>
+{% endif %}
+<p class="disclaimer"><strong>Transparência metodológica:</strong> a pontuação é experimental, calculada pelo pipeline Bronze/Silver/Gold com fontes públicas e relatos simulados. Os gráficos representam a fotografia atual dos dados e não permitem inferir uma evolução temporal sem histórico das rodadas. A área operacional mantém alterações em banco separado.</p>
+</main>
+<footer class="site-footer"><div class="container">Fila Justa · Engenharia de Software · Painel demonstrativo · 2026</div></footer>
+</body></html>

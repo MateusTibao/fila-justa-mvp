@@ -3,7 +3,9 @@ const CFG = {csrf: document.querySelector('meta[name=fj-csrf]').content, perfil:
 const ROTAS = {
   kanban: '/api/gestao/kanban',
   demandas: '/api/gestao/demandas',
-  importar: '/api/gestao/importar-gold'
+  importar: '/api/gestao/importar-gold',
+  entrada: '/api/gestao/entrada',
+  acompanhar: '/api/gestao/acompanhar'
 };
 const PROXIMAS = {
   nova: ['pendente','cancelada'],
@@ -13,8 +15,8 @@ const PROXIMAS = {
   resolvida: ['em_andamento'], cancelada: []
 };
 const LABELS = {
-  nova: 'Nova', pendente: 'Pendente', em_andamento: 'Em andamento',
-  aguardando_validacao: 'Aguardando validação', resolvida: 'Resolvida', cancelada: 'Cancelada'
+  nova: 'Recebida', pendente: 'Em triagem', em_andamento: 'Em atendimento',
+  aguardando_validacao: 'Em conferência', resolvida: 'Concluída', cancelada: 'Arquivada'
 };
 const gestor = CFG.perfil === 'gestor' || CFG.perfil === 'administrador';
 let atual = null, criando = false;
@@ -52,12 +54,52 @@ function card(d) {
   n.setAttribute('aria-label', 'Abrir demanda: ' + d.titulo);
   n.appendChild(tornarTexto('h3',d.titulo));
   n.appendChild(tornarTexto('p',d.area_nome || d.tipo || 'Sem distrito informado'));
-  n.appendChild(tornarTexto('span',(d.situacao_prazo || 'sem_prazo').replaceAll('_',' '),
-                             'badge ' + d.situacao_prazo));
+  n.appendChild(tornarTexto('span',d.score_origem == null ? 'Pontuação de origem não disponível' :
+    'Prioridade: ' + Number(d.score_origem).toFixed(2) + ' / 100', 'badge'));
+  n.appendChild(tornarTexto('small',d.cluster_id ? 'ID: ' + d.cluster_id : 'Registro operacional', 'card-code'));
   n.addEventListener('click', () => abrir(d.id));
   n.addEventListener('keydown', e => {if(e.key==='Enter'||e.key===' '){e.preventDefault();abrir(d.id);}});
   n.addEventListener('dragstart', e => {e.dataTransfer.setData('text/plain', d.id); e.dataTransfer.effectAllowed='move';});
   return n;
+}
+
+async function carregarEntrada() {
+  const alvo = el('entrada-fila');
+  if (!alvo) return;
+  alvo.replaceChildren();
+  try {
+    const dados = await chamar(ROTAS.entrada);
+    if (!(dados.itens || []).length) {
+      alvo.appendChild(tornarTexto('p','Não há cartões novos nas primeiras posições consultadas. Consulte o catálogo para pesquisar outros IDs.'));
+      return;
+    }
+    for (const d of dados.itens) {
+      const n = document.createElement('article');
+      n.className = 'inbox-card';
+      n.appendChild(tornarTexto('small','Posição #' + d.rank + ' · ID: ' + d.cluster_id));
+      n.appendChild(tornarTexto('strong',d.titulo));
+      n.appendChild(tornarTexto('span','Pontuação calculada: ' + Number(d.score_origem).toFixed(2) + ' / 100','inbox-score'));
+      if (gestor) {
+        const btn = tornarTexto('button','Iniciar acompanhamento');
+        btn.type = 'button';
+        btn.className = 'secondary';
+        btn.addEventListener('click',async()=>{
+          btn.disabled=true;
+          try {
+            const atualizado = await chamar(ROTAS.acompanhar,'POST',{cluster_id:d.cluster_id});
+            await carregar();
+            await abrir(atualizado.id);
+          } catch(err) { aviso(err.message); btn.disabled=false; }
+        });
+        n.appendChild(btn);
+      } else {
+        n.appendChild(tornarTexto('small','Encaminhamento inicial reservado ao gestor.'));
+      }
+      alvo.appendChild(n);
+    }
+  } catch(err) {
+    alvo.appendChild(tornarTexto('p','Entrada analítica indisponível nesta consulta.'));
+  }
 }
 
 async function carregar() {
@@ -70,6 +112,7 @@ async function carregar() {
       const lista = c.querySelector('.cards');
       lista.replaceChildren(...(dados[estado]?.itens || []).map(card));
     });
+    await carregarEntrada();
   } catch(e) {aviso(e.message);}
 }
 
@@ -127,9 +170,9 @@ function preencher(d){
   el('prazo_em').value=prazoLocal(d?.prazo_em);
   el('justificativa').value='';
   el('dados-origem').textContent=d ?
-    `Origem: ${d.origem} · Código: ${d.cluster_id||d.id} · Versão: ${d.versao}`:
+    `Origem: ${d.origem} · ID: ${d.cluster_id||d.id} · Pontuação na entrada: ${d.score_origem == null ? 'não calculada' : Number(d.score_origem).toFixed(2) + ' / 100'} · Versão: ${d.versao}`:
     'Nova demanda manual, aguardando triagem.';
-  el('modal-titulo').textContent=d?`Demanda · ${LABELS[d.status]}`:'Criar demanda';
+  el('modal-titulo').textContent=d?`Acompanhamento · ${LABELS[d.status]}`:'Registro demonstrativo';
   const sel=el('novo-status');sel.replaceChildren();
   for(const s of d?transicoesPermitidas(d.status):[]){
     const option=document.createElement('option');option.value=s;option.textContent=LABELS[s];sel.appendChild(option);
@@ -137,11 +180,11 @@ function preencher(d){
   sel.disabled=sel.options.length===0;
   el('btn-transicao').disabled=!d||!sel.options.length;
   el('btn-transicao').hidden=!d;
-  el('btn-salvar').disabled=!gestor;
+  el('btn-salvar').disabled=true;
   el('btn-salvar').textContent=d?'Salvar alterações':'Criar demanda';
   el('historico').replaceChildren();
   for(const field of ['titulo','descricao','tipo','area_nome','prazo_em']){
-    el(field).disabled=!gestor || (d && ['resolvida','cancelada'].includes(d.status));
+    el(field).disabled=true;
   }
 }
 async function abrir(id){
@@ -164,8 +207,8 @@ el('btn-nova').addEventListener('click',()=>{
   if(!gestor)return;
   criando=true;atual=null;preencher(null);el('detalhe').showModal();
 });
-el('btn-nova').hidden=!gestor;
-el('btn-importar').hidden=!gestor;
+el('btn-nova').hidden=true;
+el('btn-importar').hidden=true;
 el('btn-importar').addEventListener('click',()=>{
   el('cluster-id').value='';
   el('importar-erro').textContent='';

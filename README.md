@@ -7,27 +7,43 @@
 ## Arquitetura
 
 - **Big Data:** pipeline Airflow e PostgreSQL com camadas Bronze, Silver e Gold. Snapshot `gold` disponível para consulta no Azure.
-- **Camada pública:** aplicativo Flask lê `gold.mart_fila_priorizacao` com usuário `app_reader` somente leitura; exibe as primeiras 30 prioridades.
-- **Camada operacional (Fila Justa):** schema PostgreSQL `operacional`, autenticação de usuários, gestão de demandas com histórico de mudanças e vínculo opcional por `cluster_id`.
+- **Camada pública:** aplicativo Flask lê `gold.mart_fila_priorizacao` com usuário `app_reader` somente leitura; exibe todas as ocorrências agrupadas da fotografia atual, com busca e paginação, sem login.
+- **Camada operacional (Fila Justa):** schema PostgreSQL `operacional`, autenticação de usuários, atualização de acompanhamento com histórico de mudanças, vinculada ao `cluster_id` da Gold.
 - **CI/CD:** GitHub Actions. A aprovação e a publicação em Azure são passos controlados após testes e migração.
 
 **Fontes analíticas:** SP156, IBGE Censo 2022, Open-Meteo e relatos simulados. **ODS:** 9, 10, 11 e 13. **Natureza:** protótipo acadêmico, não oficial da Prefeitura.
 
 ## Funcionalidades
 
-A parte pública permanece acessível em `/`. A gestão operacional é habilitada **somente** quando os dois valores `OPERATIONAL_DATABASE_URL` e `FJ_SESSION_SECRET` estão configurados, e após executar as migrações em um banco de testes:
+A consulta pública não exige login nem schema operacional. A gestão operacional é habilitada **somente** quando os dois valores `OPERATIONAL_DATABASE_URL` e `FJ_SESSION_SECRET` estão configurados, e após executar as migrações em um banco de testes:
 
 | Tela | Função |
 |---|---|
 | `/login` | Autenticação de operador, gestor ou administrador |
 | `/gestao/demandas` | Lista de demandas com busca, filtro e paginação |
-| `/gestao/kanban` | Quadro de seis estados, abrir/editar, arrastar cartão, visualizar histórico |
-| `/gestao/dashboard` | Métricas operacionais (demandas, ativas, vencidas, resolvidas) |
-| `/` | Fila analítica pública — não cria automaticamente ordens de serviço |
+| `/gestao/kanban` | Entrada analítica automática e quadro de acompanhamento com histórico e movimentações |
+| `/gestao/dashboard` | Indicadores de gestão com gráficos de etapas, distribuição territorial, categorias e movimentos recentes |
+| `/` | Observatório público: KPIs, gráficos de tipos, territórios e faixas de pontuação calculadas da Gold |
+| `/ocorrencias` | **Todas as ocorrências da Gold**, com busca por ID, título, categoria ou distrito e paginação |
+| `/ocorrencias/<cluster_id>` | Detalhe público, pontuação, explicação analítica e acompanhamento (quando existe) |
+| `/api/ocorrencias` | Consulta JSON paginada, somente leitura, sem autenticação |
+| `/gestao/kanban` | **Entrada automática da fila analítica**: gestor encaminha cartão existente, sem novo cadastro |
+| `/gestao/dashboard` | Gráficos dos atendimentos registrados e movimentações reais dos últimos sete dias |
 
-**Estados:** `nova → pendente → em_andamento → aguardando_validacao → resolvida`. Há também `cancelada`. **Situação de prazo** (`em_dia`, `proximo_vencimento`, `atrasada`, `sem_prazo`, `encerrada`) não é estado do workflow. Gestor/administrador validam conclusões. Cada mudança registra autor, horário, versão e justificativa. Alterações concorrentes retornam HTTP 409.
+**Etapas operacionais:** recebida → em triagem → em atendimento → em conferência → concluída; também existe arquivada. A prioridade não é atribuída manualmente e não depende de prazo. Gestor/administrador validam conclusões. Cada mudança registra autor, horário, versão e justificativa. Alterações concorrentes retornam HTTP 409.
 
-A importação de um `cluster_id` Gold é idempotente: atualizar o pipeline não altera a situação operacional já registrada. O módulo GenAI está em repositório separado e **não foi acoplado** a esta alteração.
+A consulta lê a **prioridade corrente** diretamente da Gold, sem gerar uma demanda operacional por ocorrência. Ao selecionar **Iniciar acompanhamento** em um cartão, o gestor cria o registro de acompanhamento uma única vez e o encaminha para triagem. Repetir essa ação não apaga histórico nem altera a etapa já registrada. O score armazenado no acompanhamento identifica a pontuação no momento da entrada; o catálogo público continua exibindo a pontuação corrente da Gold. O módulo GenAI está em repositório separado e **não foi acoplado** a esta alteração.
+
+## Consulta pública e simulação
+
+- A fila é alimentada pelo snapshot `gold.mart_fila_priorizacao` do pipeline SP156 + IBGE + clima + relatos simulados; o aplicativo **não coleta diretamente** esses sites em tempo real e não abre protocolo municipal.
+- Cartões, posição e pontuação são gerados pela Gold, sem cadastro manual. O buscador aceita `cluster_id`, categoria, título construído de categoria/distrito e distrito. A paginação consulta a fonte sem trazer tudo para a página.
+- A aba de simulação funciona **somente no navegador** e na sessão atual; não grava banco nem indica atendimento público efetivamente realizado.
+- Na operação, apenas o gestor/autorizado registra o início do acompanhamento e a equipe atualiza etapas com auditoria. A ação `/api/gestao/acompanhar` exige login e CSRF.
+- Gráficos públicos mostram a **fotografia atual** da Gold, e não uma série de evolução histórica. O gráfico diário de movimentações do painel de gestão é construído dos eventos realmente gravados.
+- Status de atendimento e pontuação de prioridade são informações independentes; nunca deduzir atendimento concluído a partir do score.
+
+[Contrato técnico da fila e da demonstração](docs/FLUXO_PUBLICO.md).
 
 ## Saúde e disponibilidade
 
@@ -49,6 +65,7 @@ O motivo da pendência, os testes realizados, os riscos, as medidas compensatór
 - [Etapa 13 — Relatório final e roteiro de entrega](docs/ETAPA_13_RELATORIO_ENTREGA.md)
 - [Etapa 8 — Segurança: EM CONFIRMAÇÃO do professor](docs/ETAPA_8_SEGURANCA.md)
 - [CI/CD e autenticação OIDC](docs/CI_CD.md)
+- [Etapa 13 — Relatório final e roteiro de entrega](docs/ETAPA_13_RELATORIO_ENTREGA.md)
 
 A documentação da Etapa 12 consolida o pipeline Bronze/Silver/Gold validado no ambiente de engenharia, o snapshot Gold e o schema operacional na Azure, o fluxo de implantação e as pendências das etapas 8, 10, 11 e 13. O processamento Airflow **não foi declarado implantado continuamente na Azure**.
 
