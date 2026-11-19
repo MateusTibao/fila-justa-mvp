@@ -77,14 +77,44 @@ def _obter_acompanhamento(engine, ids):
             for cluster, status, prazo in rows}
 
 
+def _clusters_ocultos(engine, log=None):
+    """Consistência: nunca reexibir registros expirados se o banco operacional falhar."""
+    if engine is None:
+        return set()
+    from fj_operacional.retencao import consultar_expiradas
+    try:
+        return consultar_expiradas(engine)["clusters"]
+    except Exception as exc:
+        if log:
+            log.error("Não foi possível consultar a retenção das demandas concluídas")
+        raise RuntimeError("Consulta operacional temporariamente indisponível") from exc
+
+
+def _where_gold(busca, ocultos):
+    filtros, parametros = [], []
+    if ocultos:
+        # Array parametrizado; remove expirados ANTES de COUNT, paginação e indicadores.
+        filtros.append("cluster_id::text <> ALL(%s)")
+        parametros.append(sorted(ocultos))
+    if busca:
+        filtros.append(
+            "POSITION(LOWER(%s) IN LOWER("
+            "COALESCE(cluster_id::text, '') || ' ' || COALESCE(tipo::text, '') || ' ' || "
+            "COALESCE(area_nome::text, '') || ' ' || "
+            "COALESCE(tipo::text, '') || ' — ' || COALESCE(area_nome::text, '')"
+            ")) > 0"
+        )
+        parametros.append(busca)
+    return (" WHERE " + " AND ".join(filtros)) if filtros else "", parametros
+
+
 def aplicar_acompanhamento(itens, engine=None, log=None):
     try:
         estados = _obter_acompanhamento(engine, [i["cluster_id"] for i in itens])
-    except Exception:
-        # Consulta pública deve continuar disponível mesmo com operação indisponível.
+    except Exception as exc:
         if log:
-            log.warning("Acompanhamento operacional indisponível na consulta pública")
-        estados = {}
+            log.error("Consulta operacional temporariamente indisponível")
+        raise RuntimeError("Acompanhamento operacional indisponível") from exc
     from fj_operacional.domain import data_prazo, prazo_atrasado
     for item in itens:
         registro = estados.get(item["cluster_id"])
@@ -108,12 +138,8 @@ def listar_gold(get_connection, *, busca="", pagina=1, por_pagina=18, engine=Non
     except (TypeError, ValueError):
         pagina = 1
     por_pagina = max(1, min(int(por_pagina), 30))
-    where = ("WHERE POSITION(LOWER(%s) IN LOWER("
-             "COALESCE(cluster_id::text, '') || ' ' || COALESCE(tipo::text, '') || ' ' ||"
-             "COALESCE(area_nome::text, '') || ' ' || "
-             "COALESCE(tipo::text, '') || ' — ' || COALESCE(area_nome::text, '')"
-             ")) > 0") if busca else ""
-    params = [busca] if busca else []
+    ocultos = _clusters_ocultos(engine, log)
+    where, params = _where_gold(busca, ocultos)
     with get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute("SELECT COUNT(*) AS total FROM gold.mart_fila_priorizacao " + where, params)
@@ -133,6 +159,8 @@ def listar_gold(get_connection, *, busca="", pagina=1, por_pagina=18, engine=Non
 
 def obter_gold(get_connection, cluster_id, *, engine=None, log=None):
     cluster_id = str(cluster_id or "")[:300]
+    if cluster_id in _clusters_ocultos(engine, log):
+        return None
     with get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute("""
@@ -148,12 +176,14 @@ def obter_gold(get_connection, cluster_id, *, engine=None, log=None):
     return aplicar_acompanhamento([normalizar_item(row)],engine,log)[0]
 
 
-def indicadores_gold(get_connection):
+def indicadores_gold(get_connection, *, engine=None, log=None):
+    ocultos = _clusters_ocultos(engine, log)
+    where, params = _where_gold("", ocultos)
     with get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT tipo, area_nome, score_0_100
                   FROM gold.mart_fila_priorizacao
-            """)
+            """ + where, params)
             rows = cursor.fetchall()
     return resumo_da_gold(rows)

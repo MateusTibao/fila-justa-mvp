@@ -16,6 +16,7 @@ from .domain import (
     situacao_prazo, normalizar_prazo, data_prazo, prazo_atrasado, FUSO_OPERACIONAL,
 )
 from .models import demandas, historico
+from .retencao import consultar_expiradas
 
 
 def utcnow():
@@ -243,11 +244,15 @@ class DemandasRepository:
     def kanban(self, *, limite_por_coluna=30):
         limite_por_coluna = max(1, min(int(limite_por_coluna), 50))
         resultado = {}
+        ocultos = consultar_expiradas(self.engine)["ids"]
         with self.engine.connect() as conn:
             for status in STATUS:
+                filtros = [demandas.c.status == status]
+                if ocultos:
+                    filtros.append(demandas.c.id.not_in(ocultos))
                 total = conn.execute(select(func.count()).select_from(demandas)
-                                     .where(demandas.c.status == status)).scalar_one()
-                rows = conn.execute(select(demandas).where(demandas.c.status == status)
+                                     .where(*filtros)).scalar_one()
+                rows = conn.execute(select(demandas).where(*filtros)
                     .order_by(demandas.c.atualizado_em.desc(), demandas.c.id)
                     .limit(limite_por_coluna)).mappings().all()
                 resultado[status] = {"total": total, "itens": [_json(r) for r in rows]}
@@ -261,6 +266,9 @@ class DemandasRepository:
         pagina = max(1, min(int(pagina), 10000))
         por_pagina = max(1, min(int(por_pagina), 50))
         filtros = []
+        ocultos = consultar_expiradas(self.engine)["ids"]
+        if ocultos:
+            filtros.append(demandas.c.id.not_in(ocultos))
         if status:
             filtros.append(demandas.c.status == status)
         if busca:

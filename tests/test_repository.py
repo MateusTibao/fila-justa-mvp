@@ -1,9 +1,11 @@
 import pytest
-from sqlalchemy import create_engine, text, select, func
+from datetime import datetime, timedelta, timezone
+from sqlalchemy import create_engine, text, select, func, update
 from sqlalchemy.pool import StaticPool
 from fj_operacional.models import metadata, demandas, historico
 from fj_operacional.repository import DemandasRepository
 from fj_operacional.domain import RegraNegocioError, ConflitoVersaoError, SemPermissaoError
+from fj_operacional.retencao import finalizacao_expirada, consultar_expiradas, PERMANENCIA_CONCLUIDA
 
 
 @pytest.fixture
@@ -226,3 +228,56 @@ def test_anotacao_em_demanda_concluida_restrita_a_gestor(setup):
     d2=repo.mudar_status(demanda_id=d['id'],versao=d['versao'],destino='resolvida',
                          ator='gestor',perfil='gestor',justificativa='Encerramento confirmado')
     assert d2['status']=='resolvida'
+
+def test_regra_48_horas_sem_perder_historico(setup):
+    repo, eng = setup
+    d=repo.acompanhar_gold(ator='gestor', perfil='gestor',cluster_id='c-001')
+    for estado, perfil in [('em_andamento','operador'),
+                           ('aguardando_validacao','operador'),('resolvida','gestor')]:
+        d=repo.mudar_status(demanda_id=d['id'], destino=estado, versao=d['versao'],
+                            ator=perfil, perfil=perfil, justificativa='Etapa verificada')
+    assert repo.kanban()['resolvida']['total']==1
+    assert repo.listar()['total']==1
+    assert repo.entrada_gold()==[]
+    agora=datetime.now(timezone.utc)
+    instante=agora-timedelta(hours=49)
+    with eng.begin() as conn:
+        conn.execute(update(historico).where(
+            historico.c.demanda_id==d['id'],
+            historico.c.tipo_evento=='transicao',
+            historico.c.status_novo=='resolvida'
+        ).values(ocorrido_em=instante))
+    ids=consultar_expiradas(eng)
+    assert d['id'] in ids['ids']
+    assert 'c-001' in ids['clusters']
+    assert repo.kanban()['resolvida']['total']==0
+    assert repo.listar()['total']==0
+    # O dado operacional continua consultável com autenticação para auditoria.
+    assert repo.buscar(d['id'])['status']=='resolvida'
+    assert len(repo.historico_da_demanda(d['id']))==5
+    assert repo.entrada_gold()==[]
+
+    # A anotação na mesma etapa não prolonga artificialmente as 48 horas.
+    anotada=repo.mudar_status(demanda_id=d['id'], destino='resolvida',
+        versao=d['versao'],ator='gestor',perfil='gestor',
+        justificativa='Confirmação administrativa posterior')
+    assert anotada['status']=='resolvida'
+    assert repo.kanban()['resolvida']['total']==0
+    assert len(repo.historico_da_demanda(d['id']))==6
+
+    # Uma reabertura, se autorizada, volta a exibir o cartão.
+    reaberta=repo.mudar_status(demanda_id=d['id'], destino='em_andamento',
+        versao=anotada['versao'],ator='gestor',perfil='gestor',
+        justificativa='Problema retornou')
+    assert reaberta['status']=='em_andamento'
+    assert repo.kanban()['em_andamento']['total']==1
+    assert repo.listar()['total']==1
+    assert 'c-001' not in consultar_expiradas(eng)['clusters']
+
+
+def test_limite_exato_de_48_horas_e_fuso():
+    instante=datetime(2026,11,18,12,0,tzinfo=timezone.utc)
+    assert not finalizacao_expirada(instante,agora=instante+timedelta(hours=47,minutes=59))
+    assert finalizacao_expirada(instante,agora=instante+timedelta(hours=48))
+    assert finalizacao_expirada(instante,agora=instante+timedelta(days=3))
+    assert PERMANENCIA_CONCLUIDA == timedelta(hours=48)

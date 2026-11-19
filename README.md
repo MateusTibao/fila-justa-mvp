@@ -32,6 +32,35 @@ A mudança de estado respeita a sequência e as permissões já definidas no mó
 
 A interface pública mostra a situação persistida quando existe acompanhamento operacional, ou **Sem acompanhamento registrado** quando ainda não há atualização. Nenhuma simulação altera ou mascara esse estado. Os indicadores agregados permanecem disponíveis em uma seção expansível da página pública. O módulo GenAI continua separado e não foi integrado.
 
+## Permanência das demandas concluídas
+
+Após uma transição real para **Concluída**, a demanda permanece visível por
+**48 horas**. Passada essa janela, o aplicativo a retira automaticamente
+do **Kanban**, da **consulta pública**, dos **resultados de busca e detalhamento**,
+da **API pública**, da contagem/paginação e dos indicadores calculados sobre
+a fila exibida. A próxima consulta já respeita o filtro; o Kanban também
+reconsulta os dados periodicamente enquanto estiver aberto.
+
+A janela é calculada pela **última transição efetiva para Concluída**
+registrada em `operacional.historico_status`. Uma justificativa escrita
+na mesma etapa não reinicia o período. Reabrir uma demanda faz com que ela
+volte a aparecer; caso seja concluída novamente, inicia-se uma nova janela
+de 48 horas.
+
+**Nenhuma demanda nem histórico é apagado.** O gestor pode consultar o registro
+por ID autenticado, para auditoria, mesmo após sua remoção das filas.
+A tabela/view Gold original **não é modificada**: a exclusão é aplicada
+pelo aplicativo às consultas da fila de priorização, preservando a fonte analítica.
+Para remover fisicamente ou recalcular a view no pipeline, seria necessária
+uma integração específica com o projeto de dados.
+
+**Dependência operacional:** essa exclusão precisa da conexão
+`OPERATIONAL_DATABASE_URL` ativa para identificar os IDs concluídos. Se a
+gestão estiver desconfigurada, o app não conhece as conclusões e não consegue
+aplicar o filtro. Se a conexão configurada estiver temporariamente
+indisponível, o acesso público retorna indisponibilidade ao invés de voltar
+a exibir demandas já expiradas. Não há migração SQL adicional nesta entrega.
+
 ## Origem e limites
 
 As ocorrências do protótipo são processadas pelo pipeline já existente, que combina fontes SP156, IBGE, clima e relatos simulados na base analítica. A descrição curta exibida na página pública menciona apenas SP156, conforme o texto de interface definido. Essa alteração editorial **não retira os dados simulados que possam estar presentes na Gold**.

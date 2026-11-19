@@ -101,7 +101,8 @@ def index():
     try:
         catalogo = listar_gold(get_connection, busca=busca, pagina=pagina,
                                 engine=app.config.get('OP_ENGINE'), log=app.logger)
-        resumo = indicadores_gold(get_connection) if not busca else None
+        resumo = indicadores_gold(get_connection, engine=app.config.get('OP_ENGINE'),
+                                 log=app.logger) if not busca else None
         return render_template('index.html', resumo=resumo, catalogo=catalogo,
                                destaques=catalogo['itens'], error=False,
                                operacional_ativo=operacional_configurado())

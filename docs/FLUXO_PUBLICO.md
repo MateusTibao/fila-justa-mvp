@@ -58,6 +58,30 @@ quando o atendimento ainda está aberto. A visualização mantém
 `Prazo vencido` para registros nessa condição.
 Os timestamps originais persistem para auditoria.
 
+## Retenção da fila após conclusão
+
+Uma demanda continua na coluna `Concluída` por **48 horas contadas do evento
+de transição para resolvida**, não da última alteração administrativa.
+O evento é identificado no histórico operacional, que não é apagado.
+Anotações posteriores sem mudança de estado não prolongam a janela.
+
+Após as 48 horas, o ID deixa de participar das consultas do **Kanban** e
+da **fila pública de priorização**, incluindo busca, paginação, indicadores,
+API e acesso público ao detalhe. A consulta autenticada direta ao histórico
+continua possível para auditoria. Reabertura traz a demanda de volta;
+uma nova conclusão reinicia o prazo.
+
+O cálculo é feito ao consultar, sem job agendado; o Kanban se atualiza a cada
+minuto quando está aberto e sem modal ativo. A Gold original continua
+intacta, sem exclusão física nem alteração no pipeline. O serviço de leitura
+retira os clusters expirados usando a conexão da base operacional, que deve
+estar configurada em produção. Se configurada e fora do ar, falha sem
+reexpor registros concluídos. Se a configuração operacional estiver ausente,
+não há como conhecer os clusters finalizados e o filtro não funciona.
+
+Nenhuma migração é necessária. Os testes verificam 47h59/48h, histórico
+preservado, anotações posteriores, reabertura, Kanban, API e consulta pública.
+
 ## Segurança e limitações
 
 O painel público não expõe históricos internos nem pessoas responsáveis.

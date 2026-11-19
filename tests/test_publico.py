@@ -70,3 +70,44 @@ def test_prazo_vencido_na_consulta_publica():
     assert itens[0]['prazo_data'] == '17/11/2020'
     assert itens[0]['prazo_vencido'] is True
     assert itens[0]['acompanhamento'] == 'em_andamento'
+
+def test_filtro_publico_ignora_clusters_concluidos_apos_48_horas():
+    from unittest.mock import patch
+    from fj_publico import listar_gold, indicadores_gold, obter_gold
+    executadas=[]
+    class Cursor:
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def execute(self,sql,params=()):
+            executadas.append((sql,params))
+        def fetchone(self):return {'total':1}
+        def fetchall(self):
+            return [{'rank':1,'cluster_id':'c-aberto','tipo':'buraco','area_nome':'Sé',
+              'score_0_100':70,'n_relatos':1,'explicacao':'','run_id':'r'}]
+    class Conn:
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def cursor(self):return Cursor()
+    with patch('fj_publico._clusters_ocultos',return_value={'c-concluido'}), \
+         patch('fj_publico._obter_acompanhamento',return_value={}):
+        dados=listar_gold(lambda:Conn(),busca='Sé',engine=object())
+        assert dados['itens'][0]['cluster_id']=='c-aberto'
+        assert dados['total']==1
+        assert len(executadas)==2
+        assert 'cluster_id::text <> ALL(%s)' in executadas[0][0]
+        assert executadas[0][1] == [['c-concluido'],'Sé']
+        assert executadas[1][1][-2:] == [18,0]
+        assert obter_gold(lambda:Conn(),'c-concluido',engine=object()) is None
+        assert len(executadas)==2
+        indicadores_gold(lambda:Conn(),engine=object())
+        assert 'cluster_id::text <> ALL(%s)' in executadas[-1][0]
+        assert executadas[-1][1] == [['c-concluido']]
+
+
+def test_filtro_fechado_quando_operacional_indisponivel():
+    import pytest
+    from unittest.mock import patch
+    from fj_publico import listar_gold
+    with patch('fj_operacional.retencao.consultar_expiradas',side_effect=OSError('falha de banco')):
+        with pytest.raises(RuntimeError,match='operacional'):
+            listar_gold(lambda:None, engine=object())

@@ -167,5 +167,10 @@ el('btn-transicao').addEventListener('click',async()=>{
   finally{botao.disabled=false;}
 });
 carregar();
+// Revalida a permanência das conclusões sem exigir recarregamento manual.
+// Enquanto um modal está aberto, evita apagar a seleção da equipe.
+setInterval(() => {
+  if (!document.hidden && !el('detalhe').open) carregar();
+}, 60000);
 const abrirId=new URLSearchParams(location.search).get('abrir');
 if(abrirId&&/^[a-z0-9-]{1,300}$/i.test(abrirId))abrir(abrirId);

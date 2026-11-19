@@ -122,3 +122,28 @@ def test_operador_nao_registra_edicao_em_concluida(contexto):
     r=client.post(f'/api/gestao/demandas/{d["id"]}/status',
       json={'versao':d['versao'],'status':'resolvida','justificativa':'Tentativa'},headers=HEADERS)
     assert r.status_code==403
+
+def test_concluida_desaparece_do_kanban_sem_ser_apagada(contexto):
+    from datetime import timedelta
+    from sqlalchemy import update
+    from fj_operacional.models import historico
+    client,estado=contexto
+    estado['usuario']={'id':'gestor','perfil':'gestor'}
+    d=client.post('/api/gestao/acompanhar',
+       json={'cluster_id':'teste1'},headers=HEADERS).json
+    for prox,perfil in [('em_andamento','operador'),
+                        ('aguardando_validacao','operador'),('resolvida','gestor')]:
+        estado['usuario']={'id':perfil,'perfil':perfil}
+        d=client.post(f'/api/gestao/demandas/{d["id"]}/status',
+           json={'versao':d['versao'],'status':prox,
+                 'justificativa':'Etapa confirmada'},headers=HEADERS).json
+    assert client.get('/api/gestao/kanban').json['resolvida']['total']==1
+    with estado['engine'].begin() as conn:
+        conn.execute(update(historico).where(
+            historico.c.demanda_id==d['id'],
+            historico.c.tipo_evento=='transicao',
+            historico.c.status_novo=='resolvida'
+        ).values(ocorrido_em=datetime.now(timezone.utc)-timedelta(hours=49)))
+    assert client.get('/api/gestao/kanban').json['resolvida']['total']==0
+    assert client.get('/api/gestao/demandas').json['total']==0
+    assert client.get(f'/api/gestao/demandas/{d["id"]}').json['status']=='resolvida'
