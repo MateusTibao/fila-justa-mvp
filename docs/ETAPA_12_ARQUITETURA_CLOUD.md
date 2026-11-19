@@ -117,13 +117,13 @@ A API autenticada fica sob `/api/gestao`, aplica autorização por perfil e exig
 
 **Procedimento operacional para novas publicações:** revisar mudanças, executar CI, conferir banco/configurações e janela de atualização, escolher `publicar` manualmente, confirmar `/health`, `/ready`, `/`, login, Kanban e alertas. Manter uma versão anterior recuperável e planejar reversão manual antes de mudanças de maior risco.
 
-## 8. Segurança — Etapa 8 EM CONFIRMAÇÃO
+## 8. Segurança — Etapa 8 CONCLUÍDA COM RESSALVA DOCUMENTADA
 
 A auditoria cobriu HTTPS, TLS, configuração de FTP/FTPS, RBAC, identidades separadas, histórico, OIDC e a dependência de firewall. A alternativa atual mantém a regra especial `fj-f1-azure-acesso` (`0.0.0.0`) do PostgreSQL para permitir origens dos serviços Azure, **inclusive outros locatários**. Isso não equivale a acesso privado.
 
 A remoção dessa regra, mantendo apenas os IPs públicos de saída listados pelo App Service, resultou em `/ready` e `/` HTTP 503; restaurá-la restabeleceu a conexão. O plano F1 não suporta integração com rede virtual, e a cota B1 consultada na assinatura era zero.
 
-**Status:** **EM CONFIRMAÇÃO com o professor** quanto à aceitação da limitação na entrega acadêmica. Não há confirmação registrada nem aprovação definitiva da exceção. A melhoria para isolamento de rede permanece aberta; a implantação **não foi atestada para produção com dados reais**.
+**Status:** **CONCLUÍDA COM RESSALVA DOCUMENTADA** para a entrega acadêmica. O responsável pelo projeto informou que o professor aceitou a alternativa desde que a limitação fosse documentada, como feito em [Etapa 8 — Segurança](ETAPA_8_SEGURANCA.md). O isolamento privado continua como evolução técnica pendente; a implantação **não foi atestada para produção com dados reais**.
 
 Documento completo: [Etapa 8 — Segurança](ETAPA_8_SEGURANCA.md).
 
@@ -156,7 +156,7 @@ Na consulta à **Análise de custos** da assinatura Azure for Students, com per�
 
 O quadro de uso gratuito mostrou 2,76/32 GB-mês de armazenamento PostgreSQL, 61/750 horas de B-series e 0/15 GB de transferência de dados, sem limites excedidos nessa captura. A regra de alerta possuía estimativa separada de **US$ 0,10/mês**, que não deve ser somada automaticamente ao custo acumulado.
 
-O **saldo de créditos estudantis não pôde ser confirmado** no Portal Azure; a consulta ao portal Microsoft Azure Sponsorships retornou **“This account does not have an active Sponsorship.”** Essa resposta não comprova esgotamento dos benefícios Azure for Students. Não foi solicitado upgrade ou cadastro de cartão. **Etapa 11: revisão de custos concluída com ressalva de saldo não verificado.**
+O **saldo de créditos estudantis não foi localizado na conta no Portal Azure**. A tentativa de consulta ao portal Microsoft Azure Sponsorships retornou **“This account does not have an active Sponsorship.”** Isso não comprova esgotamento dos benefícios Azure for Students e não permite afirmar o saldo disponível. Por isso, **a análise de custos foi baseada nos valores reais e na previsão exibidos pela Análise de custos da Azure** (R$ 0,24 acumulado e R$ 0,35 previstos para novembro de 2026), não em um saldo presumido nem em cálculo de crédito restante. Não foi solicitado upgrade ou cadastro de cartão. **Etapa 11: revisão de custos concluída com ressalva de saldo não verificado.**
 
 O App Service F1 é a modalidade gratuita de hospedagem usada; **isso não significa que todo o ambiente Azure ou o PostgreSQL seja gratuito**.
 
@@ -164,7 +164,7 @@ O App Service F1 é a modalidade gratuita de hospedagem usada; **isso não signi
 
 | Tema | Estado |
 |---|---|
-| Etapa 8: decisão sobre a exceção de rede | **Em confirmação com o professor** |
+| Etapa 8: segurança e exceção de rede | **Concluída com ressalva documentada para a entrega acadêmica**; isolamento privado permanece pendente |
 | Etapa 10: entrega efetiva do e-mail de alerta | Configurada, não comprovada devido à limitação do teste na assinatura |
 | Etapa 11: revisão de custos | Concluída com ressalva: saldo de créditos não verificado; despesas devem continuar monitoradas |
 | Etapa 13: relatório formal e evidências em PDF | Pendente |
