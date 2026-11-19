@@ -77,7 +77,7 @@ A pontuação da Gold não constitui prazo de atendimento nem indicador de servi
 
 ## Segurança da implantação Azure (Etapa 8)
 
-**Status: EM CONFIRMAÇÃO, aguardando retorno do professor.** Os controles foram auditados: HTTPS/TLS, RBAC, FTP/FTPS desativado e papéis mínimos do PostgreSQL foram validados. A implantação F1 ainda depende da exceção de firewall `fj-f1-azure-acesso` (`0.0.0.0`, autorização para serviços Azure) para acessar o PostgreSQL. Isso **não é isolamento privado de rede** e não deve ser apresentado como configuração definitiva para produção. A continuidade acadêmica com essa limitação foi submetida ao professor, **sem resposta registrada até o momento**.
+**Status: CONCLUÍDA COM RESSALVA DOCUMENTADA para a entrega acadêmica.** Segundo o responsável pelo projeto, o professor aceitou a alternativa desde que documentada. Os controles foram auditados: HTTPS/TLS, RBAC, FTP/FTPS desativado e papéis mínimos do PostgreSQL foram validados. A implantação F1 ainda depende da exceção de firewall `fj-f1-azure-acesso` (`0.0.0.0`, autorização para serviços Azure) para acessar o PostgreSQL. Isso **não é isolamento privado de rede** e não deve ser apresentado como configuração definitiva para produção.
 
 O motivo da pendência, os testes realizados, os riscos, as medidas compensatórias e os critérios para corrigi-la estão registrados em [Etapa 8 — Auditoria e pendência de rede](docs/ETAPA_8_SEGURANCA.md).
 
@@ -85,7 +85,7 @@ O motivo da pendência, os testes realizados, os riscos, as medidas compensatór
 
 - [Arquitetura Cloud e evidências de validação](docs/ETAPA_12_ARQUITETURA_CLOUD.md)
 - [Etapa 13 — Relatório final e roteiro de entrega](docs/ETAPA_13_RELATORIO_ENTREGA.md)
-- [Etapa 8 — Segurança: EM CONFIRMAÇÃO do professor](docs/ETAPA_8_SEGURANCA.md)
+- [Etapa 8 — Segurança: concluída com ressalva documentada](docs/ETAPA_8_SEGURANCA.md)
 - [CI/CD e autenticação OIDC](docs/CI_CD.md)
 - [Etapa 13 — Relatório final e roteiro de entrega](docs/ETAPA_13_RELATORIO_ENTREGA.md)
 
