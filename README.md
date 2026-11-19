@@ -1,5 +1,15 @@
 # Fila Justa — Ficha Técnica do MVP
 
+## Integrantes
+
+| Integrante | Registro (RM) |
+|---|---|
+| Caio Freitas | RM553190 |
+| Caio Hideki | RM553630 |
+| Jorge Booz | RM552700 |
+| Mateus Tibão | RM553267 |
+| Lana Andrade | RM552596 |
+
 **Nome:** Fila Justa | **Área:** gestão urbana e priorização territorial | **Cidade inicial:** São Paulo (SP).
 
 **Problema:** demandas urbanas excedem a capacidade de atendimento. **Proposta:** oferecer uma fila de priorização justa, explicável e sensível ao clima e um fluxo separado de gestão das ocorrências selecionadas.
