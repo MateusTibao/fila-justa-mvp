@@ -150,9 +150,13 @@ Documento completo: [Etapa 8 — Segurança](ETAPA_8_SEGURANCA.md).
 
 **Registros de teste:** uma demanda manual fictícia e uma demanda importada da Gold foram usadas na validação. Evitar tratá-las como ocorrências reais atendidas pela Prefeitura.
 
-## 11. Custos e limites — Etapa 11 aguardando conferência final
+## 11. Custos e limites — Etapa 11 revisada com ressalva
 
-Em uma captura de análise de custos do grupo `rg-fila-justa` no mês de novembro de 2026 foi exibido **US$ 0,04 acumulado**, concentrado no Azure Monitor; o período estava em andamento. A tela de regra de alerta apresentou **US$ 0,10/mês estimado** para a condição de alerta. Esses dados não são uma previsão confiável do custo total e **precisam ser reconferidos na assinatura** após os testes do MVP, conforme decisão do projeto.
+Na consulta à **Análise de custos** da assinatura Azure for Students, com período **novembro de 2026** (captura fornecida em 18/11/2026), foram observados **R$ 0,24 de custo acumulado** e **R$ 0,35 de previsão até o final do mês**. A divisão por serviço mostrou **Azure Monitor: R$ 0,24**; **App Service, Azure Database for PostgreSQL, Log Analytics e Bandwidth: R$ 0,00** no recorte da consulta. Os valores são parciais, sujeitos a atualização e não garantem custo futuro.
+
+O quadro de uso gratuito mostrou 2,76/32 GB-mês de armazenamento PostgreSQL, 61/750 horas de B-series e 0/15 GB de transferência de dados, sem limites excedidos nessa captura. A regra de alerta possuía estimativa separada de **US$ 0,10/mês**, que não deve ser somada automaticamente ao custo acumulado.
+
+O **saldo de créditos estudantis não pôde ser confirmado** no Portal Azure; a consulta ao portal Microsoft Azure Sponsorships retornou **“This account does not have an active Sponsorship.”** Essa resposta não comprova esgotamento dos benefícios Azure for Students. Não foi solicitado upgrade ou cadastro de cartão. **Etapa 11: revisão de custos concluída com ressalva de saldo não verificado.**
 
 O App Service F1 é a modalidade gratuita de hospedagem usada; **isso não significa que todo o ambiente Azure ou o PostgreSQL seja gratuito**.
 
@@ -162,7 +166,7 @@ O App Service F1 é a modalidade gratuita de hospedagem usada; **isso não signi
 |---|---|
 | Etapa 8: decisão sobre a exceção de rede | **Em confirmação com o professor** |
 | Etapa 10: entrega efetiva do e-mail de alerta | Configurada, não comprovada devido à limitação do teste na assinatura |
-| Etapa 11: custo total da assinatura | Revisão final pendente |
+| Etapa 11: revisão de custos | Concluída com ressalva: saldo de créditos não verificado; despesas devem continuar monitoradas |
 | Etapa 13: relatório formal e evidências em PDF | Pendente |
 | Adoção para produção com dados reais | Não atestada; exige reavaliação da topologia e segurança |
 
