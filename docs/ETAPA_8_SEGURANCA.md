@@ -1,8 +1,8 @@
 # Etapa 8 — Segurança, auditoria e pendência de conectividade
 
 **Projeto:** Fila Justa — MVP acadêmico na Azure  
-**Estado em 18/11/2026:** **EM CONFIRMAÇÃO** — auditoria executada e aplicação operacional; isolamento de rede do PostgreSQL pendente de definição com o professor.  
-**Situação:** foi proposta ao professor a continuidade da entrega acadêmica com a exceção de firewall documentada. **A aprovação ainda não foi recebida; não registrar a exceção como aprovada.** A arquitetura não está atestada para produção com dados reais.
+**Estado da entrega acadêmica:** **CONCLUÍDA COM RESSALVA DOCUMENTADA** — auditoria executada e aplicação operacional; isolamento de rede do PostgreSQL permanece como melhoria técnica pendente.  
+**Decisão acadêmica:** conforme confirmação informada pelo responsável pelo projeto, o professor aceitou a continuidade da entrega **desde que a limitação fique documentada**. A exceção de firewall está descrita aqui; a arquitetura não está atestada para produção com dados reais.
 
 ## Arquitetura envolvida
 
@@ -44,7 +44,7 @@
 - A assinatura é **Azure for Students**, com cota **B1 igual a zero** para a região consultada.
 - O **App Service F1** não dispõe de integração com rede virtual necessária à arquitetura recomendada de acesso privado ao banco.
 - Não havia autorização/capacidade de provisionar um plano superior para integrar App Service, VNet, DNS privado e endpoint privado do PostgreSQL.
-- Retirar a regra sem uma alternativa validada derrubou a leitura da fila e a disponibilidade da aplicação. Optou-se por preservar o MVP operacional para testes acadêmicos, **com risco identificado e registrado, ainda aguardando confirmação do professor**, e não por afirmar que a pendência foi eliminada.
+- Retirar a regra sem uma alternativa validada derrubou a leitura da fila e a disponibilidade da aplicação. Optou-se por preservar o MVP operacional para testes acadêmicos, **com risco identificado e documentado como ressalva da entrega acadêmica**, e não por afirmar que a pendência foi eliminada.
 
 ## Riscos e medidas compensatórias
 
@@ -59,7 +59,7 @@
 3. **Somente após testes bem-sucedidos**, remover a exceção `fj-f1-azure-acesso` e, quando aplicável, desabilitar o acesso público ao PostgreSQL.
 4. Registrar nova evidência técnica e atualizar este documento.
 
-**Status da Etapa 8:** **EM CONFIRMAÇÃO**, aguardando o posicionamento do professor sobre a alternativa utilizada e o registro do risco residual. Pendência de isolamento de rede **aberta**. Adequação a produção com dados reais: **não atestada**.
+**Status da Etapa 8:** **CONCLUÍDA COM RESSALVA DOCUMENTADA**, conforme aceite acadêmico informado pelo responsável pelo projeto. Pendência de isolamento de rede **aberta**. Adequação a produção com dados reais: **não atestada**.
 
 ## Pendência correlata de monitoramento (Etapa 10)
 
