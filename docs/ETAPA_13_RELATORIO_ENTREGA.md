@@ -20,7 +20,7 @@ O relatório final foi produzido em **PDF A4 com oito páginas e capturas reais*
 | 8 | Auditoria e regras de firewall; isolamento de rede pendente de solução | **EM CONFIRMAÇÃO do professor** |
 | 9 | CI GitHub Actions, OIDC e publicação manual no App Service | Concluída; [deploy aprovado](https://github.com/MateusTibao/fila-justa-mvp/actions/runs/44240763220) |
 | 10 | Teste de disponibilidade `/ready`, regra de alerta e grupo com e-mail | Configurada; envio real do e-mail não confirmado |
-| 11 | Custos iniciais observados no Azure; revisão total posterior aos testes | Revisão final pendente |
+| 11 | Análise de custos da assinatura: R$ 0,24 acumulado e previsão de R$ 0,35; Azure Monitor concentrou o custo | Concluída com ressalva: saldo de créditos não verificado |
 | 12 | Arquitetura, dados, segurança, operação e evidências documentadas | Concluída |
 | 13 | Relatório prático da entrega em PDF A4 e roteiro de demonstração | PDF produzido |
 
@@ -44,13 +44,13 @@ O relatório final foi produzido em **PDF A4 com oito páginas e capturas reais*
 7. Apresentar o monitoramento /ready e a regra de alerta vinculada ao grupo de ações.
 8. Explicar que a Etapa 8 está **em confirmação**, pois a limitação de firewall do plano F1 foi submetida ao professor.
 9. Explicar que o e-mail de alerta não foi comprovado devido ao erro `409 Conflict — Free subscription not supported` no teste manual da assinatura.
-10. Revalidar os custos reais da assinatura antes do encerramento definitivo.
+10. Apresentar a revisão de custos da assinatura (R$ 0,24 acumulado, R$ 0,35 previsto até 30/11/2026); explicar que o saldo de créditos não pôde ser verificado.
 
 ## Limitações que não devem ser apresentadas como concluídas
 
 - **Etapa 8:** sem confirmação do professor e sem isolamento privado do PostgreSQL.
 - **Etapa 10:** configuração comprovada, notificação recebida por e-mail não comprovada.
-- **Etapa 11:** valor inicial de US$ 0,04 no grupo de recursos, mas custo total de assinatura e orçamento mensal ainda sujeitos à revisão.
+- **Etapa 11:** revisão da assinatura em novembro de 2026: R$ 0,24 acumulado, R$ 0,35 previsto, custo concentrado no Azure Monitor. O portal Microsoft Azure Sponsorships retornou “This account does not have an active Sponsorship”; saldo de créditos Azure for Students **não verificado**. Valores sujeitos a mudanças.
 - O projeto é protótipo acadêmico; não é serviço oficial da Prefeitura e não há indicação de Airflow operando continuamente na Azure.
 
 ## Documentos relacionados
